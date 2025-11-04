@@ -1,0 +1,129 @@
+<html>
+<head>
+    <title>Report</title>
+    <meta charset="UTF-8">
+    <script src="report.js" type="module"></script>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+<select id="panel"></select>
+<h1>Report</h1>
+<div>
+    <p>
+        <label for=frames></label>Origin</label>
+        <select id=frames></select>
+    </p>
+</div>
+<div>
+    <button id="query" title="Fetch information about current host">Query</button>
+    <button id="apply" title="Apply current settings to session rules">Apply</button>
+    <button id="commit" title="Make these settings dynamic rules">Commit</button>
+    <button id="disable" title="Disable policies for this host">Disable</button>
+    <button id="reload" title="Reload active tab">Reload</button>
+</div>
+<hr>
+<div>
+    <table id="sources">
+        <caption>Source Directives</caption>
+        <thead>
+            <tr>
+                <th id=src>Source</th>
+                <th id=default-src title="default-src">✅</th>
+                <th id=child-src title="child-src">👶</th>
+                <th id=connect-src title="connect-src">🔌</th>
+                <th id=font-src title="font-src">📝</th>
+                <th id=frame-src title="frame-src">🪟</th>
+                <th id=img-src title="img-src">🖼️</th>
+                <th id=manifest-src title="manifest-src">🪪</th>
+                <th id=media-src title="media-src">📽️</th>
+                <th id=object-src title="object-src">🧱</th>
+                <th id=script-src title="script-src">📜</th>
+                <th id=style-src title="style-src">🦚</th>
+                <th id=worker-src title="worker-src">🔧</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>
+</br>
+<div>
+    <button id="togglesbx" title="Display Sandbox Directives">Sandbox</button>
+</div>
+<hr>
+<div>
+    <table id="sandbox">
+        <caption>Sandbox Directives</caption>
+        <thead>
+            <tr>
+            <th><label for=sandbox-enabled>Enabled</label></th>
+            <td><input type=checkbox id=sandbox-enabled class=sandbox></td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th><label for=allow-downloads>Downloads</label></td>
+                <td><input type=checkbox id=allow-downloads class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-forms>Forms</label></td>
+                <td><input type=checkbox id=allow-forms class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-orientation-lock>Orientation Lock</label></td>
+                <td><input type=checkbox id=allow-orientation-lock class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-pointer-lock>Pointer Lock</label></td>
+                <td><input type=checkbox id=allow-pointer-lock class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-popups>Popups</label></td>
+                <td><input type=checkbox id=allow-popups class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-popups-to-escape-sandbox>Popups Escape Sandbox</label></td>
+                <td><input type=checkbox id=allow-popups-to-escape-sandbox class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-same-origin class=sandbox>Presentation</label></td>
+                <td><input type=checkbox id=allow-presentation class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-same-origin>Same Origin</label></td>
+                <td><input type=checkbox id=allow-same-origin class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-scripts>Scripts</label></td>
+                <td><input type=checkbox id=allow-scripts class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-storage-access-by-user-activation>Storage Access by User Activation</label></td>
+                <td><input type=checkbox id=allow-storage-access-by-user-activation class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-top-navigation>Top Navigation</label></td>
+                <td><input type=checkbox id=allow-top-navigation class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-top-navigation-by-user-activation>Top Navigation by User Activation</label></td>
+                <td><input type=checkbox id=allow-top-navigation-by-user-activation class="sandbox allow"></input></td>
+            </tr>
+            <tr>
+                <th><label for=allow-top-navigation-to-custom-protocols>Top Navigation to Custom Protocols</label></td>
+                <td><input type=checkbox id=allow-top-navigation-to-custom-protocols class="sandbox allow"></input></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+</br>
+<hr>
+<div>
+<label for=servercsp>Server Suggested Policy</label>
+<textarea id=servercsp readonly>
+none
+</textarea>
+</div>
+</br>
+</body>
+</html>

@@ -1,0 +1,43 @@
+select {
+    width: 100%;
+}
+
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse
+}
+
+td:has(input.violation) {
+    background-color: orange;
+}
+
+table {
+    width: 100%;
+}
+
+textarea {
+    width: 100%;
+    height: -webkit-fill-available;
+    font-family: monospace;
+}
+
+td:has(input.sandbox:not(checked)):after {
+    content: "🔒"
+}
+td:has(input.sandbox:checked):after {
+    content: "🔓"
+}
+td:has(input#sandbox-enabled:not(checked)):after {
+    content: "🔓"
+}
+td:has(input#sandbox-enabled:checked):after {
+    content: "🔒"
+}
+
+table#sandbox {
+    display: none
+}
+
+table#sandbox th {
+    text-align: left
+}

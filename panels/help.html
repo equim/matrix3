@@ -1,0 +1,41 @@
+<html>
+<head>
+    <title>Help</title>
+    <meta charset="UTF-8">
+    <script src="/include/sidepanel.js" type="module"></script>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+<select id="panel"></select>
+<h1>Help</h1>
+<p>
+You can use this extension to control the permissions of websites.
+
+For example, enabling sandbox features, enabling or disabling scripts,
+stylesheets, fonts and choosing which third parties can provide subresources.
+<h2>Defaults</h2>
+<p>
+You probably want to fine tune the default rules, you can do that by choosing
+the default ruleset in the Rules page.
+</p>
+<h2>Options</h2>
+<h3>Show Advanced Directives</h3>
+<p>
+Content Security Policy defines a lot of directives that are usually not very
+exciting, like manifest-src and orientation-lock. matrix³ tries to guess what
+you would want based on more general settings. If you want more precise
+control, you can enable this.
+</p>
+<h3>Implicit Attribute/Element Sources</h3>
+<p>
+Content Security Policy has some very fine grained directives, like
+script-src-elem and style-src-attr. If you enable this, you don't care about
+that and whatever you specify for the more broad directives will be duplicated.
+</p>
+<h3>Implicit Unsafe Sources</h3>
+<p>
+The CSP spec labels some sources as unsafe, like unsafe-eval. If you select
+this, we will just consider those sources implicit for directives without none.
+</p>
+</body>
+</html>
