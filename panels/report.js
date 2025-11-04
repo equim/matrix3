@@ -256,7 +256,7 @@ async function setCurrentRules(hostName)
                 policy.directives[dirs[i]] = ["'none'"];
                 continue;
             }
-            if (dirs[i] == "script-src" || dirs[i] == "style-src" && srcs[j] == "'inline'") {
+            if ((dirs[i] == "script-src" || dirs[i] == "style-src") && srcs[j] == "'inline'") {
                 policy.directives[dirs[i]].push("'unsafe-inline'");
                 continue;
             }
