@@ -14,11 +14,7 @@ export default class RequestServer {
 
         switch (request.command) {
             case MessageTypes.REQ_POLICY: {
-                sendResponse(this.tracker.getDirectives(request.data.id));
-                break;
-            }
-            case MessageTypes.REQ_ORIGINS: {
-                sendResponse(this.tracker.getOriginList(request.data.id));
+                sendResponse(this.tracker.getDirectives(request.data.id, request.data.origin));
                 break;
             }
             case MessageTypes.REQ_HEADERS: {

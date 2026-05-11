@@ -1,6 +1,5 @@
 import * as utils from '/include/utils.js'
 import * as sidepanel from '/include/sidepanel.js'
-import Policy from '/include/policy.js'
 import { MessageTypes } from '/include/commands.js'
 
 let RulesManager = sidepanel.RulesManager;
@@ -10,13 +9,10 @@ const sandboxTable = document.querySelector("table#sandbox")
 const originList = document.querySelector("select#frames")
 const headerList = document.querySelector("textarea#servercsp")
 
-document.getElementById('query').addEventListener("click", async () => {
-    updateReport();
-});
+document.getElementById('query').addEventListener("click", () => updateReport());
 
 document.getElementById('apply').addEventListener("click", async () => {
-    let url = await sidepanel.getActiveUrl();
-    await setCurrentRules(url.host);
+    await setCurrentRules(new URL(originList.value).host);
 });
 document.getElementById('disable').addEventListener("click", async () => {
     // remove sandbox and default-src?
@@ -34,6 +30,8 @@ document.getElementById('togglesbx').addEventListener("click", async () => {
     }
 });
 
+originList.addEventListener("change", e => refreshTable(e.target.value));
+
 function resetSandboxDirectives()
 {
     let features = Array.from(document.querySelectorAll("td input.sandbox"));
@@ -48,7 +46,7 @@ function resetDirectivesTable()
     addSourceCheckboxRow("'none'");
     addSourceCheckboxRow("'self'");
     addSourceCheckboxRow("'unsafe-eval'");
-    addSourceCheckboxRow("'inline'");
+    addSourceCheckboxRow("'unsafe-inline'");
     addSourceCheckboxRow("https:");
     addSourceCheckboxRow("http:");
     addSourceCheckboxRow("data:");
@@ -78,69 +76,57 @@ function addSourceCheckboxRow(source)
     return directivesTable.rows.length - 1;
 }
 
-function setSourceCheckboxState(source, directive, state, className)
+function findCheckbox(source, directive, autoAdd)
 {
     let rows = Array.from(directivesTable.rows).map(r => r.cells[0].textContent);
     let cols = Array.from(directivesTable.rows[0].cells).map(c => c.id);
     let rowNum = rows.indexOf(source);
     let colNum = cols.indexOf(directive);
-    let box;
 
-    if (rowNum == -1) {
+    if (rowNum == -1 && autoAdd) {
         console.log("report", `source name ${source} is unknown, adding`);
         rowNum = addSourceCheckboxRow(source);
     }
     if (rowNum == -1 || colNum == -1) {
         console.log("report", `checkbox for ${directive} ${source} does not exist`);
-        return;
+        return null;
     }
 
-    box = directivesTable.rows[rowNum].cells[colNum].firstChild;
+    return directivesTable.rows[rowNum].cells[colNum].firstChild;
+}
 
+function setSourceCheckboxState(source, directive, state, className)
+{
+    let box = findCheckbox(source, directive, true);
+    if (!box) return;
     box.checked = state;
-
-    if (typeof className != "undefined") {
+    if (className)
         box.classList.add(className);
-    }
 }
 
 function setSourceCheckboxClass(source, directive, className)
 {
-    let rows = Array.from(directivesTable.rows).map(r => r.cells[0].textContent);
-    let cols = Array.from(directivesTable.rows[0].cells).map(c => c.id);
-    let rowNum = rows.indexOf(source);
-    let colNum = cols.indexOf(directive);
-    let box;
-
-    if (rowNum == -1) {
-        console.log("report", `source name ${source} is unknown, adding`);
-        rowNum = addSourceCheckboxRow(source);
-    }
-    if (rowNum == -1 || colNum == -1) {
-        console.log("report", `checkbox for ${directive} ${source} does not exist`);
-        return;
-    }
-
-    box = directivesTable.rows[rowNum].cells[colNum].firstChild;
-    box.classList.add(className);
+    let box = findCheckbox(source, directive, true);
+    if (box)
+        box.classList.add(className);
 }
 
 function getSourceCheckboxState(source, directive)
 {
-    let rows = Array.from(directivesTable.rows).map(r => r.cells[0].textContent);
-    let cols = Array.from(directivesTable.rows[0].cells).map(c => c.id);
-    let rowNum = rows.indexOf(source);
-    let colNum = cols.indexOf(directive);
-    let box;
+    return findCheckbox(source, directive, false)?.checked;
+}
 
-    if (rowNum == -1 || colNum == -1) {
-        console.log("report", `checkbox for ${directive} ${source} does not exist`);
-        return;
+function collapseDirective(directive)
+{
+    switch (directive) {
+        case "script-src-elem":
+        case "script-src-attr":
+            return "script-src";
+        case "style-src-elem":
+        case "style-src-attr":
+            return "style-src";
     }
-
-    box = directivesTable.rows[rowNum].cells[colNum].firstChild;
-
-    return box.checked;
+    return directive;
 }
 
 async function getCurrentRules(hostName)
@@ -161,70 +147,36 @@ async function getCurrentRules(hostName)
                   : "dynamic";
 
     for (let directive in policy.directives) {
-        let dir = directive;
         let sources = policy.directives[directive];
 
-        switch (directive) {
-            case "sandbox": {
-                let sbx = document.querySelector("input#sandbox-enabled");
-                let features = Array.from(document.querySelectorAll("td input.sandbox"));
+        if (directive == "sandbox") {
+            let sbx = document.querySelector("input#sandbox-enabled");
+            let features = Array.from(document.querySelectorAll("td input.sandbox"));
 
-                // In this context, sources are the keywords after the sandbox
-                // directive, like sandbox allow-downloads.
-                sbx.checked = true;
-
-                for (let i = 0; i < sources.length; i++) {
-                    let box = features.find(f => f.id == sources[i]);
-                    box.checked = true;
-                }
-
-                // This isn't a source directive, so skip it.
-                continue;
+            sbx.checked = true;
+            for (let i = 0; i < sources.length; i++) {
+                let box = features.find(f => f.id == sources[i]);
+                box.checked = true;
             }
-            case "report-uri":
-            case "base-uri":
-                continue;
-            // I think I should just simplify these, there are already enough directives.
-            case "script-src-elem":
-            case "script-src-attr":
-                dir = "script-src";
-                break;
-            case "style-src-elem":
-            case "style-src-attr":
-                dir = "style-src";
-                break;
+            continue;
         }
+
+        if (directive == "report-uri" || directive == "base-uri")
+            continue;
+
+        let dir = collapseDirective(directive);
         for (let i = 0; i < sources.length; i++) {
-            let src = sources[i];
-            switch (src) {
-                case "unsafe-inline":
-                case "'unsafe-inline'":
-                    if (dir == "srcipt-src" || dir == "style-src")
-                        src = "'inline'";
-                    break;
-            }
-            setSourceCheckboxState(src, dir, true, className);
+            setSourceCheckboxState(sources[i], dir, true, className);
         }
     }
 }
 
-async function setCurrentViolations(data)
+function setCurrentViolations(data)
 {
     for (let directive in data) {
+        let dir = collapseDirective(directive);
         for (let i = 0; i < data[directive].length; i++) {
-            let src = data[directive][i];
-            let dir = directive;
-            switch (directive) {
-                case "script-src-elem":
-                case "script-src-attr":
-                    dir = "script-src";
-                    break;
-                case "style-src-elem":
-                case "style-src-attr":
-                    dir = "style-src";
-                    break;
-            }
-            setSourceCheckboxClass(src, dir, "violation");
+            setSourceCheckboxClass(data[directive][i], dir, "violation");
         }
     }
 }
@@ -256,10 +208,6 @@ async function setCurrentRules(hostName)
                 policy.directives[dirs[i]] = ["'none'"];
                 continue;
             }
-            if ((dirs[i] == "script-src" || dirs[i] == "style-src") && srcs[j] == "'inline'") {
-                policy.directives[dirs[i]].push("'unsafe-inline'");
-                continue;
-            }
             policy.directives[dirs[i]].push(srcs[j]);
         }
     }
@@ -268,43 +216,38 @@ async function setCurrentRules(hostName)
     let sbx = document.querySelector("input#sandbox-enabled");
     let features = Array.from(document.querySelectorAll("td input.sandbox.allow:checked")).map(f => f.id);
 
-    // Append all the features enabled.
-    policy.directives.sandbox = features;
-
-    // If it is disabled, we can just throw the whole thing away.
-    if (!sbx.checked) {
-        delete policy.directives.sandbox
-    }
+    if (sbx.checked)
+        policy.directives.sandbox = features;
 
     // Okay, give them to the Rules Manager
     RulesManager.addSessionRule(hostName, policy);
 }
 
-async function populateOriginList() {
+async function populateOriginList(preferredOrigin) {
     let url = await sidepanel.getActiveUrl();
     let tab = await sidepanel.getActiveTab();
 
-    // Request a list of known origins.
-    const origins = await chrome.runtime.sendMessage({
-        command: MessageTypes.REQ_ORIGINS,
-           data: {
-                id: tab.id
-        }
-    });
+    let frames = await chrome.webNavigation.getAllFrames({tabId: tab.id}) ?? [];
+    let origins = [...new Set(frames.map(f => new URL(f.url).origin))];
 
-    Array.from(originList.children).forEach(o => originList.removeChild(o));
+    // Keep the preferred origin if it's still on the page, otherwise fall
+    // back to the top frame (e.g. cross-origin navigation discarded it).
+    let target = url.origin;
+    if (origins.includes(preferredOrigin))
+        target = preferredOrigin;
+
+    originList.replaceChildren();
 
     for (let i = 0; i < origins.length; i++) {
         let opt = document.createElement("option");
         opt.textContent = origins[i];
         opt.value = origins[i];
-        opt.selected = url.origin == origins[i];
+        opt.selected = target == origins[i];
         originList.add(opt);
     }
 }
 
 async function populateServerPolicy() {
-    let url = await sidepanel.getActiveUrl();
     let tab = await sidepanel.getActiveTab();
 
     // Request a list of known origins.
@@ -315,37 +258,38 @@ async function populateServerPolicy() {
         }
     });
 
-    servercsp.value = headers.length == 0 ? "none" : "";
-    for (let i = 0; i < headers.length; i++) {
-        servercsp.value += headers[i];
-        servercsp.value += "\n";
-    }
+    headerList.value = headers.join("\n") || "none";
 }
 
-async function updateReport() {
-    let url = await sidepanel.getActiveUrl();
+async function refreshTable(origin) {
     let tab = await sidepanel.getActiveTab();
+    let host = new URL(origin).host;
 
-    // Remove any current rules.
     resetDirectivesTable();
     resetSandboxDirectives();
 
-    // Fetch current rules.
-    await getCurrentRules(url.host);
+    await getCurrentRules(host);
 
-    // Request a list of violations.
     const violations = await chrome.runtime.sendMessage({
         command: MessageTypes.REQ_POLICY,
            data: {
-                id: tab.id
+                id: tab.id,
+            origin: origin
         }
     });
 
     setCurrentViolations(violations);
-    populateOriginList();
+}
+
+async function updateReport() {
+    let prev = originList.value;
+
+    await populateOriginList(prev);
+    await refreshTable(originList.value);
     populateServerPolicy();
 };
 
-resetDirectivesTable();
-populateOriginList();
+chrome.tabs.onUpdated.addListener(() => updateReport());
+chrome.tabs.onActivated.addListener(() => updateReport());
+
 updateReport();

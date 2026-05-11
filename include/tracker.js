@@ -1,4 +1,5 @@
 import CspReport from '/include/cspreport.js'
+import { getRegistrableDomain } from '/include/psl.js'
 
 // Imagine a document with an embedded youtube video, the toplevel document
 // will script src the youtube embedded script, which creates an iframe that
@@ -10,38 +11,16 @@ import CspReport from '/include/cspreport.js'
 // Instead, we track subresource violations and populate the report form so
 // it can all be done on the same page.
 
-class Origin {
-    server;     // Any server recommended CSP.
-    origin;     // URL() containing origin
-    policy;     // Set of observed CSP directives for this origin.
-    frameid;    // -1 for outermost, otherwise unique id.
-}
-
 // The information we track about a tab
 class Tab {
-    policy;
-    server;
+    server = new Set();
+    policy = {};
     origin;
-    origins;
     id;
     status;
 
     constructor(tabId) {
-        this.server = new Set();
-        this.policy = {};
-        this.origins = new Map();
         this.id = tabId;
-    }
-
-    getOrigin(url) {
-        if (this.origins.has(url) == false) {
-            this.origins.set(url, new Origin(url))
-        }
-        return this.origins.get(url);
-    }
-
-    getOriginList() {
-        return Array.from(this.origins.keys())
     }
 }
 
@@ -60,15 +39,7 @@ export default class ViolationTracker {
         return this.#tabs.get(tabId);
     }
 
-    getOriginList(tabId) {
-        return this.#getOrCreateTab(tabId).getOriginList();
-    }
-
-    getServerHeadersList(tabId) {
-        return this.#getOrCreateTab(tabId).getOriginList();
-    }
-
-    addTabViolation(tabId, report) {
+    async addTabViolation(tabId, report) {
         let tab = this.#getOrCreateTab(tabId);
         let blocked = report.blocked?.origin;
         let origin = report.initiator?.origin;
@@ -80,13 +51,13 @@ export default class ViolationTracker {
             switch (report.blocked.protocol) {
                 case "unsafe-inline:":
                 case "inline:":
-                    blocked = "'inline'";
+                    blocked = "'unsafe-inline'";
                     break;
                 case "wasm-eval:":
-                    blocked = "'wasm-eval'";
+                    blocked = "'wasm-unsafe-eval'";
                     break;
                 case "eval:":
-                    blocked = "'eval'";
+                    blocked = "'unsafe-eval'";
                     break;
                 case "about:":
                 case "data:":
@@ -96,21 +67,25 @@ export default class ViolationTracker {
                 default:
                     console.log("tracker", "what is this", report.blocked);
             }
+        } else {
+            // Collapse subdomain origins to a registrable-domain wildcard so
+            // the user isn't drowning in per-host directives.
+            const u = new URL(blocked);
+            const registrable = await getRegistrableDomain(u.hostname);
+            let hostpart = registrable;
+            if (u.hostname != registrable)
+                hostpart = `*.${registrable}`;
+            blocked = `${u.protocol}//${hostpart}`;
         }
 
-        // Just populate for now to test
-        tab.getOrigin(origin);
+        // Bucket directives under the initiating origin so each frame's
+        // violations can be reported independently.
+        if (!Object.hasOwn(tab.policy, origin))
+            tab.policy[origin] = {};
+        if (!Object.hasOwn(tab.policy[origin], report.directive))
+            tab.policy[origin][report.directive] = new Set();
 
-        // Check if we already know this directive
-        if (!Object.hasOwn(tab.policy, report.directive))
-            tab.policy[report.directive] = new Set();
-
-        // Add this source to the directive
-        tab.policy[report.directive].add(blocked);
-
-        // Record last known origin
-        if (report.isOutermost())
-            tab.origin = origin;
+        tab.policy[origin][report.directive].add(blocked);
     }
 
     // Called when the origin changes, throw away what we know.
@@ -127,29 +102,28 @@ export default class ViolationTracker {
         return Array.from(this.#getOrCreateTab(tabId).server);
     }
 
-    getDirectives(tabId) {
+    getDirectives(tabId, origin) {
         let tab = this.#getOrCreateTab(tabId);
+        let bucket = tab.policy[origin] ?? {};
 
         return Object.fromEntries(
-            Object.entries(tab.policy).map(([key, value]) => [key, Array.from(value)])
+            Object.entries(bucket).map(([key, value]) => [key, Array.from(value)])
         );
     }
 
-    getOrigins(tabId) {
-        let tab = this.#getOrCreateTab(tabId);
-        return tab.getOriginList();
-    }
-
+    // Called from chrome.tabs.onUpdated for every tab change (status, url, title, etc).
+    // Records the tab's current status and origin, and discards any accumulated
+    // policy/origin data when the top-frame origin changes (cross-origin navigation).
     setTabUpdated(tabId, target) {
-        let tab = this.#getOrCreateTab(tabId);
+        let tab = this.#tabs.get(tabId);
         let url = new URL(target.url);
 
-        // Track last known status
-        tab.status = target.status;
-
-        // Check if the origin matches
-        if (tab.origin != url.origin)
+        if (tab?.origin != url.origin)
             this.resetTab(tabId);
+
+        tab = this.#getOrCreateTab(tabId);
+        tab.status = target.status;
+        tab.origin = url.origin;
     }
 }
 
