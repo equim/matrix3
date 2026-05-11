@@ -1,5 +1,3 @@
-import * as Utils from '/include/utils.js'
-import * as Server from './server.js'
 import CspReport from '/include/cspreport.js'
 import ViolationTracker from '/include/tracker.js'
 import RequestServer from '/server.js'
@@ -15,8 +13,7 @@ chrome.webRequest.onHeadersReceived.addListener((details) => {
             return;
 
         console.log("csp headers for tab", details.tabId, "url", details.url, csp);
-        csp.forEach(hdr => tracker.addServerPolicy(details.tabId, hdr.value));
-        return;
+        csp.forEach(hdr => tracker.addServerPolicy(details.tabId, details.url, hdr.value));
     }, {
         types: [ "main_frame", "sub_frame" ],
         urls: [ "<all_urls>" ]
@@ -31,7 +28,6 @@ chrome.webRequest.onBeforeRequest.addListener((details) => {
 
         // Now add this to the map of known directives
         tracker.addTabViolation(details.tabId, csp);
-        return;
     }, {
         types: [ "csp_report" ],
          urls: [ "<all_urls>" ]
@@ -41,9 +37,10 @@ chrome.webRequest.onBeforeRequest.addListener((details) => {
 // Make the matrix button open the sidepanel.
 chrome.sidePanel.setPanelBehavior({openPanelOnActionClick: true }).catch((error) => console.error(error));
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    //console.log("service", "onupdated", tabId, changeInfo, tab);
-    tracker.setTabUpdated(tabId, tab);
+// Reset before the request so the CSP captured by onHeadersReceived survives.
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+    if (details.frameId === 0)
+        tracker.resetTab(details.tabId);
 });
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     console.log("service", "onremoved", tabId, removeInfo);

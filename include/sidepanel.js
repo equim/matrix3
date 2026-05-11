@@ -1,4 +1,3 @@
-import * as utils from '/include/utils.js'
 import Rules from '/include/rules.js'
 
 export let current = await chrome.windows.getCurrent();
@@ -33,14 +32,6 @@ for (let page in sidepanelPages) {
 
 panel.addEventListener("change", event => {
     chrome.sidePanel.setOptions({ path: event.target.value });
-});
-
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-    if (activeInfo.windowId != current.id) {
-        return;
-    }
-
-    console.log("sidepanel", "active tab in my window changed");
 });
 
 export async function getActiveTab()

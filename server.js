@@ -18,7 +18,7 @@ export default class RequestServer {
                 break;
             }
             case MessageTypes.REQ_HEADERS: {
-                sendResponse(this.tracker.getServerPolicy(request.data.id));
+                sendResponse(this.tracker.getServerPolicy(request.data.id, request.data.domain));
                 break;
             }
         }

@@ -34,7 +34,10 @@ document.getElementById('togglesbx').addEventListener("click", async () => {
     }
 });
 
-originList.addEventListener("change", e => refreshTable(e.target.value));
+originList.addEventListener("change", () => {
+    refreshTable(originList.value);
+    populateServerPolicy();
+});
 
 function resetSandboxDirectives()
 {
@@ -213,7 +216,8 @@ async function setCurrentRules(hostName)
     let headers = await chrome.runtime.sendMessage({
         command: MessageTypes.REQ_HEADERS,
            data: {
-                id: tab.id
+                id: tab.id,
+            domain: hostName
         }
     });
     for (let header of headers) {
@@ -290,11 +294,11 @@ async function populateOriginList(preferredDomain) {
 async function populateServerPolicy() {
     let tab = await sidepanel.getActiveTab();
 
-    // Request a list of known origins.
     const headers = await chrome.runtime.sendMessage({
         command: MessageTypes.REQ_HEADERS,
            data: {
-                id: tab.id
+                id: tab.id,
+            domain: originList.value
         }
     });
 
@@ -329,7 +333,7 @@ async function updateReport() {
     populateServerPolicy();
 };
 
-chrome.tabs.onUpdated.addListener(() => updateReport());
+chrome.webNavigation.onCommitted.addListener(() => updateReport());
 chrome.tabs.onActivated.addListener(() => updateReport());
 
 updateReport();

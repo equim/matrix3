@@ -167,8 +167,9 @@ export default class Rules {
         this.#allRules       = this.#dynamicRules.map(r => new Rule(r));
         this.#allRules       = this.#allRules.concat(this.#sessionRules.map(r => new Rule(r, true)));
         this.#staticRulesets = [];
-        for (let i = 0; i < this.#allRules.length; i++) {
-            this.#id = this.#id >= this.#allRules[i].id ? this.#id : this.#allRules[i].id;
+        for (let r of this.#allRules) {
+            if (r.id > this.#id)
+                this.#id = r.id;
         }
 
         // I think the only way to query disabled rulesets is to read them out of your manifest.
@@ -188,7 +189,7 @@ export default class Rules {
     // Internal, choose the next available id
     #getNextId() {
         return ++this.#id;
-    };
+    }
 
     // Get an empty template rule, only default policy.
     async getEmptyRule(hostName) {
@@ -270,12 +271,12 @@ export default class Rules {
             removeRuleIds: [rule.id],
             addRules: [],
         });
-    };
+    }
 
     // return the Policy() for matching host
     getHostRule(hostName) {
         return this.#allRules.find(r => r.host == hostName);
-    };
+    }
 
     getAllDirectives() {
         let keys = new Set();

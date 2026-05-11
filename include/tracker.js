@@ -13,15 +13,8 @@ import * as psl from '/include/psl.js'
 
 // The information we track about a tab
 class Tab {
-    server = new Set();
+    server = {};
     policy = {};
-    origin;
-    id;
-    status;
-
-    constructor(tabId) {
-        this.id = tabId;
-    }
 }
 
 // This class keeps track of observed violations so we can give the user hints.
@@ -34,7 +27,7 @@ export default class ViolationTracker {
 
     #getOrCreateTab(tabId) {
         if (this.#tabs.has(tabId) == false) {
-            this.#tabs.set(tabId, new Tab(tabId));
+            this.#tabs.set(tabId, new Tab());
         }
         return this.#tabs.get(tabId);
     }
@@ -82,11 +75,8 @@ export default class ViolationTracker {
         // it with the same key it puts in the dropdown.
         let domain = await psl.getRegistrableDomain(new URL(origin).hostname);
 
-        if (!Object.hasOwn(tab.policy, domain))
-            tab.policy[domain] = {};
-        if (!Object.hasOwn(tab.policy[domain], report.directive))
-            tab.policy[domain][report.directive] = new Set();
-
+        tab.policy[domain] ??= {};
+        tab.policy[domain][report.directive] ??= new Set();
         tab.policy[domain][report.directive].add(blocked);
     }
 
@@ -95,13 +85,16 @@ export default class ViolationTracker {
         this.#tabs.delete(tabId);
     }
 
-    addServerPolicy(tabId, header) {
+    async addServerPolicy(tabId, url, header) {
         let tab = this.#getOrCreateTab(tabId);
-        tab.server.add(header);
+        let domain = await psl.getRegistrableDomain(new URL(url).hostname);
+        tab.server[domain] ??= new Set();
+        tab.server[domain].add(header);
     }
 
-    getServerPolicy(tabId) {
-        return Array.from(this.#getOrCreateTab(tabId).server);
+    getServerPolicy(tabId, domain) {
+        let tab = this.#getOrCreateTab(tabId);
+        return Array.from(tab.server[domain] ?? []);
     }
 
     getDirectives(tabId, domain) {
@@ -113,19 +106,5 @@ export default class ViolationTracker {
         );
     }
 
-    // Called from chrome.tabs.onUpdated for every tab change (status, url, title, etc).
-    // Records the tab's current status and origin, and discards any accumulated
-    // policy/origin data when the top-frame origin changes (cross-origin navigation).
-    setTabUpdated(tabId, target) {
-        let tab = this.#tabs.get(tabId);
-        let url = new URL(target.url);
-
-        if (tab?.origin != url.origin)
-            this.resetTab(tabId);
-
-        tab = this.#getOrCreateTab(tabId);
-        tab.status = target.status;
-        tab.origin = url.origin;
-    }
 }
 
