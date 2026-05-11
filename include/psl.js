@@ -35,6 +35,13 @@ export async function getRegistrableDomain(host)
 
     for (let i = 1; i < labels.length; i++) {
         const candidate = labels.slice(-i - 1).join('.');
+
+        if (cache.has(candidate)) {
+            const cached = cache.get(candidate);
+            cache.set(host, cached);
+            return cached;
+        }
+
         const cookie = await chrome.cookies.set({
             url: url.href,
             name: '__matrix3_psl_probe',
@@ -44,6 +51,7 @@ export async function getRegistrableDomain(host)
         }).catch(() => null);
         if (cookie) {
             await chrome.cookies.remove({url: url.href, name: '__matrix3_psl_probe'});
+            cache.set(candidate, candidate);
             cache.set(host, candidate);
             return candidate;
         }
