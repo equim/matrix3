@@ -246,14 +246,25 @@ export default class Rules {
         this.#allRules = this.#allRules.filter(r => r.id != rule.id);
     }
 
+    // Remove every session and dynamic rule for this host.
+    async resetHostRules(hostName) {
+        let matches = this.#allRules.filter(r => r.host == hostName);
+        for (let rule of matches) {
+            if (rule.isSession)
+                await this.delSessionRule(rule);
+            else
+                await this.delDynamicRule(rule);
+        }
+    }
+
     // The session rule for matching host becomes a dynamic rule
     async commitSessionRulesForHost(hostName) {
-        let rule = this.#sessionRules.find(r => r.host == hostName);
+        let rule = this.#allRules.find(r => r.isSession && r.host == hostName);
         if (typeof rule == "undefined")
             return;
         await chrome.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: [],
-            addRules: [rule],
+            addRules: [rule.toRule()],
         });
         await chrome.declarativeNetRequest.updateSessionRules({
             removeRuleIds: [rule.id],

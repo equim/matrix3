@@ -14,9 +14,11 @@ document.getElementById('query').addEventListener("click", () => updateReport())
 document.getElementById('apply').addEventListener("click", async () => {
     await setCurrentRules(new URL(originList.value).host);
 });
-document.getElementById('disable').addEventListener("click", async () => {
-    // remove sandbox and default-src?
-    alert("fixme");
+document.getElementById('commit').addEventListener("click", async () => {
+    await RulesManager.commitSessionRulesForHost(new URL(originList.value).host);
+});
+document.getElementById('reset').addEventListener("click", async () => {
+    await RulesManager.resetHostRules(new URL(originList.value).host);
 });
 document.getElementById('reload').addEventListener("click", async () => {
     await chrome.tabs.reload();
@@ -226,23 +228,28 @@ async function setCurrentRules(hostName)
 async function populateOriginList(preferredOrigin) {
     let url = await sidepanel.getActiveUrl();
     let tab = await sidepanel.getActiveTab();
-
     let frames = await chrome.webNavigation.getAllFrames({tabId: tab.id}) ?? [];
-    let origins = [...new Set(frames.map(f => new URL(f.url).origin))];
+
+    let origins = new Set();
+    for (let f of frames) {
+        let origin = new URL(f.url).origin;
+        if (origin != "null")
+            origins.add(origin);
+    }
 
     // Keep the preferred origin if it's still on the page, otherwise fall
     // back to the top frame (e.g. cross-origin navigation discarded it).
     let target = url.origin;
-    if (origins.includes(preferredOrigin))
+    if (origins.has(preferredOrigin))
         target = preferredOrigin;
 
     originList.replaceChildren();
 
-    for (let i = 0; i < origins.length; i++) {
+    for (let origin of origins) {
         let opt = document.createElement("option");
-        opt.textContent = origins[i];
-        opt.value = origins[i];
-        opt.selected = target == origins[i];
+        opt.textContent = origin;
+        opt.value = origin;
+        opt.selected = target == origin;
         originList.add(opt);
     }
 }
@@ -262,6 +269,7 @@ async function populateServerPolicy() {
 }
 
 async function refreshTable(origin) {
+    if (!origin) return;
     let tab = await sidepanel.getActiveTab();
     let host = new URL(origin).host;
 
