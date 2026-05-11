@@ -233,8 +233,8 @@ export default class Rules {
             removeRuleIds: [rule.id],
             addRules: []
         });
-        this.#sessionRules = this.#sessionRules.filter(r => r.id == rule.id);
-        this.#allRules = this.#allRules.filter(r => r.id == rule.id);
+        this.#sessionRules = this.#sessionRules.filter(r => r.id != rule.id);
+        this.#allRules = this.#allRules.filter(r => r.id != rule.id);
     }
 
     async delDynamicRule(rule) {
@@ -242,8 +242,8 @@ export default class Rules {
             removeRuleIds: [rule.id],
             addRules: []
         });
-        this.#dynamicRules = this.#dynamicRules.filter(r => r.id == rule.id);
-        this.#allRules = this.#allRules.filter(r => r.id == rule.id);
+        this.#dynamicRules = this.#dynamicRules.filter(r => r.id != rule.id);
+        this.#allRules = this.#allRules.filter(r => r.id != rule.id);
     }
 
     // The session rule for matching host becomes a dynamic rule
