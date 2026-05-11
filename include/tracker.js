@@ -1,5 +1,5 @@
 import CspReport from '/include/cspreport.js'
-import { getRegistrableDomain } from '/include/psl.js'
+import * as psl from '/include/psl.js'
 
 // Imagine a document with an embedded youtube video, the toplevel document
 // will script src the youtube embedded script, which creates an iframe that
@@ -71,21 +71,23 @@ export default class ViolationTracker {
             // Collapse subdomain origins to a registrable-domain wildcard so
             // the user isn't drowning in per-host directives.
             const u = new URL(blocked);
-            const registrable = await getRegistrableDomain(u.hostname);
+            const registrable = await psl.getRegistrableDomain(u.hostname);
             let hostpart = registrable;
             if (u.hostname != registrable)
                 hostpart = `*.${registrable}`;
             blocked = `${u.protocol}//${hostpart}`;
         }
 
-        // Bucket directives under the initiating origin so each frame's
-        // violations can be reported independently.
-        if (!Object.hasOwn(tab.policy, origin))
-            tab.policy[origin] = {};
-        if (!Object.hasOwn(tab.policy[origin], report.directive))
-            tab.policy[origin][report.directive] = new Set();
+        // Bucket by the initiator's registrable domain so the panel can find
+        // it with the same key it puts in the dropdown.
+        let domain = await psl.getRegistrableDomain(new URL(origin).hostname);
 
-        tab.policy[origin][report.directive].add(blocked);
+        if (!Object.hasOwn(tab.policy, domain))
+            tab.policy[domain] = {};
+        if (!Object.hasOwn(tab.policy[domain], report.directive))
+            tab.policy[domain][report.directive] = new Set();
+
+        tab.policy[domain][report.directive].add(blocked);
     }
 
     // Called when the origin changes, throw away what we know.
@@ -102,9 +104,9 @@ export default class ViolationTracker {
         return Array.from(this.#getOrCreateTab(tabId).server);
     }
 
-    getDirectives(tabId, origin) {
+    getDirectives(tabId, domain) {
         let tab = this.#getOrCreateTab(tabId);
-        let bucket = tab.policy[origin] ?? {};
+        let bucket = tab.policy[domain] ?? {};
 
         return Object.fromEntries(
             Object.entries(bucket).map(([key, value]) => [key, Array.from(value)])

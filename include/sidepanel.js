@@ -49,13 +49,6 @@ export async function getActiveTab()
     return tab;
 }
 
-export async function getActiveUrl()
-{
-    let tab = await getActiveTab();
-    let url = new URL(tab.url);
-    return url;
-}
-
 // Any settings that need extra work to be applied, most should be just checked
 // when required.
 export async function applyOptions()

@@ -1,5 +1,7 @@
 import * as utils from '/include/utils.js'
 import * as sidepanel from '/include/sidepanel.js'
+import * as psl from '/include/psl.js'
+import Policy from '/include/policy.js'
 import { MessageTypes } from '/include/commands.js'
 
 let RulesManager = sidepanel.RulesManager;
@@ -12,13 +14,13 @@ const headerList = document.querySelector("textarea#servercsp")
 document.getElementById('query').addEventListener("click", () => updateReport());
 
 document.getElementById('apply').addEventListener("click", async () => {
-    await setCurrentRules(new URL(originList.value).host);
+    await setCurrentRules(originList.value);
 });
 document.getElementById('commit').addEventListener("click", async () => {
-    await RulesManager.commitSessionRulesForHost(new URL(originList.value).host);
+    await RulesManager.commitSessionRulesForHost(originList.value);
 });
 document.getElementById('reset').addEventListener("click", async () => {
-    await RulesManager.resetHostRules(new URL(originList.value).host);
+    await RulesManager.resetHostRules(originList.value);
 });
 document.getElementById('reload').addEventListener("click", async () => {
     await chrome.tabs.reload();
@@ -196,6 +198,33 @@ async function setCurrentRules(hostName)
     srcs.shift();
     dirs.shift();
 
+    // Directives the UI owns: every column, the elem/attr variants we collapse
+    // into them, sandbox (has its own UI), and the report-* family we drop.
+    let managed = new Set([...dirs,
+        "script-src-elem", "script-src-attr",
+        "style-src-elem", "style-src-attr",
+        "sandbox",
+        "report-uri", "report-to",
+    ]);
+
+    // Passthrough unmanaged directives from the server's CSP so we don't
+    // silently weaken security (frame-ancestors, trusted-types, etc.).
+    let tab = await sidepanel.getActiveTab();
+    let headers = await chrome.runtime.sendMessage({
+        command: MessageTypes.REQ_HEADERS,
+           data: {
+                id: tab.id
+        }
+    });
+    for (let header of headers) {
+        let serverPolicy = new Policy().fromHeader(header);
+        for (let d in serverPolicy.directives) {
+            if (managed.has(d)) continue;
+            if (!policy.directives[d])
+                policy.directives[d] = serverPolicy.directives[d];
+        }
+    }
+
     for (let i = 0; i < dirs.length; i++) {
         for (let j = 0; j < srcs.length; j++) {
             if (!getSourceCheckboxState(srcs[j], dirs[i]))
@@ -225,31 +254,35 @@ async function setCurrentRules(hostName)
     RulesManager.addSessionRule(hostName, policy);
 }
 
-async function populateOriginList(preferredOrigin) {
-    let url = await sidepanel.getActiveUrl();
+async function populateOriginList(preferredDomain) {
     let tab = await sidepanel.getActiveTab();
     let frames = await chrome.webNavigation.getAllFrames({tabId: tab.id}) ?? [];
 
-    let origins = new Set();
+    let domains = new Set();
+    let topDomain;
     for (let f of frames) {
-        let origin = new URL(f.url).origin;
-        if (origin != "null")
-            origins.add(origin);
+        let u = new URL(f.url);
+        if (u.origin == "null")
+            continue;
+        let domain = await psl.getRegistrableDomain(u.hostname);
+        domains.add(domain);
+        if (f.frameId === 0)
+            topDomain = domain;
     }
 
-    // Keep the preferred origin if it's still on the page, otherwise fall
-    // back to the top frame (e.g. cross-origin navigation discarded it).
-    let target = url.origin;
-    if (origins.has(preferredOrigin))
-        target = preferredOrigin;
+    // Keep the preferred domain if it's still on the page, otherwise fall
+    // back to the top frame's registrable.
+    let target = topDomain;
+    if (domains.has(preferredDomain))
+        target = preferredDomain;
 
     originList.replaceChildren();
 
-    for (let origin of origins) {
+    for (let domain of domains) {
         let opt = document.createElement("option");
-        opt.textContent = origin;
-        opt.value = origin;
-        opt.selected = target == origin;
+        opt.textContent = domain;
+        opt.value = domain;
+        opt.selected = target == domain;
         originList.add(opt);
     }
 }
@@ -268,21 +301,20 @@ async function populateServerPolicy() {
     headerList.value = headers.join("\n") || "none";
 }
 
-async function refreshTable(origin) {
-    if (!origin) return;
+async function refreshTable(domain) {
+    if (!domain) return;
     let tab = await sidepanel.getActiveTab();
-    let host = new URL(origin).host;
 
     resetDirectivesTable();
     resetSandboxDirectives();
 
-    await getCurrentRules(host);
+    await getCurrentRules(domain);
 
     const violations = await chrome.runtime.sendMessage({
         command: MessageTypes.REQ_POLICY,
            data: {
                 id: tab.id,
-            origin: origin
+            domain: domain
         }
     });
 
