@@ -7,7 +7,7 @@ let server = new RequestServer(tracker);
 
 // Track what security policy hosts request, and make it available to users.
 chrome.webRequest.onHeadersReceived.addListener((details) => {
-        let csp = details.responseHeaders.filter(hdr => hdr.name == "content-security-policy");
+        let csp = details.responseHeaders.filter(hdr => hdr.name.toLowerCase() == "content-security-policy");
 
         if (csp.length == 0)
             return;

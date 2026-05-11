@@ -30,7 +30,7 @@ class Rule {
     };
 
     set host(host) {
-        this.condition.urlFilter = "||" + host + "/";
+        this.condition.urlFilter = "||" + host + "^";
     }
 
     get host() {

@@ -7,6 +7,18 @@ const defaultPolicy = {
     "report-uri": [ "https://_matrix3.internal/csp-report" ],
 };
 
+// Server-supplied directives we don't manage in the UI but want to preserve
+// in our generated rule so we don't silently weaken security.
+export const AllowedPassthruDirectives = new Set([
+    "frame-ancestors",
+    "form-action",
+    "upgrade-insecure-requests",
+    "block-all-mixed-content",
+    "require-trusted-types-for",
+    "trusted-types",
+    "base-uri",
+]);
+
 export default class Policy {
     // Setup all the default directives we use. You can override these if you want.
     directives = structuredClone(defaultPolicy);

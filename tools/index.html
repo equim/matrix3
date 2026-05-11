@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>matrix³ CSP testbench</title>
+</head>
+<body>
+<h1>matrix³ CSP testbench</h1>
+
+<form action="/apply" method="POST">
+  <p><label for="csp">Content-Security-Policy:</label></p>
+  <textarea id="csp" name="csp" rows="6" cols="80" autofocus>{{csp}}</textarea>
+  <p><button type="submit">Apply</button></p>
+</form>
+
+<hr>
+
+<h2>Inline script</h2>
+<script>document.write('<p>inline ran</p>');</script>
+
+<h2>eval()</h2>
+<script>
+try { eval('document.write("<p>eval ran</p>")'); }
+catch (e) { document.write('<p>eval blocked</p>'); }
+</script>
+
+<h2>Inline style</h2>
+<p style="color:green">green if inline style allowed</p>
+
+<h2>Image: same-origin</h2>
+<img src="/dot.png" alt="self">
+
+<h2>Image: cross-origin (https)</h2>
+<img src="https://www.google.com/favicon.ico" alt="cross">
+
+<h2>Image: data: URL</h2>
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" alt="data">
+
+<h2>Frame: same-origin</h2>
+<iframe src="/frame.html" width="300" height="60"></iframe>
+
+<h2>Frame: cross-origin</h2>
+<iframe src="https://example.com" width="300" height="60"></iframe>
+
+<h2>External script</h2>
+<script src="https://www.google.com/jsapi"></script>
+
+<h2>fetch</h2>
+<div id="fetch-out">fetch pending...</div>
+<script>
+fetch('https://api.github.com/')
+  .then(() => document.getElementById('fetch-out').textContent = 'fetch ok')
+  .catch(() => document.getElementById('fetch-out').textContent = 'fetch blocked');
+</script>
+</body>
+</html>

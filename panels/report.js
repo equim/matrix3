@@ -2,6 +2,7 @@ import * as utils from '/include/utils.js'
 import * as sidepanel from '/include/sidepanel.js'
 import * as psl from '/include/psl.js'
 import Policy from '/include/policy.js'
+import * as csp from '/include/policy.js'
 import { MessageTypes } from '/include/commands.js'
 
 let RulesManager = sidepanel.RulesManager;
@@ -201,17 +202,8 @@ async function setCurrentRules(hostName)
     srcs.shift();
     dirs.shift();
 
-    // Directives the UI owns: every column, the elem/attr variants we collapse
-    // into them, sandbox (has its own UI), and the report-* family we drop.
-    let managed = new Set([...dirs,
-        "script-src-elem", "script-src-attr",
-        "style-src-elem", "style-src-attr",
-        "sandbox",
-        "report-uri", "report-to",
-    ]);
-
-    // Passthrough unmanaged directives from the server's CSP so we don't
-    // silently weaken security (frame-ancestors, trusted-types, etc.).
+    // Passthrough security-relevant directives the server set that we don't
+    // manage in the UI (frame-ancestors, trusted-types, etc.).
     let tab = await sidepanel.getActiveTab();
     let headers = await chrome.runtime.sendMessage({
         command: MessageTypes.REQ_HEADERS,
@@ -223,7 +215,7 @@ async function setCurrentRules(hostName)
     for (let header of headers) {
         let serverPolicy = new Policy().fromHeader(header);
         for (let d in serverPolicy.directives) {
-            if (managed.has(d)) continue;
+            if (!csp.AllowedPassthruDirectives.has(d)) continue;
             if (!policy.directives[d])
                 policy.directives[d] = serverPolicy.directives[d];
         }
