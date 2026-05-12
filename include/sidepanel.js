@@ -47,10 +47,10 @@ export async function applyOptions()
 {
     await RulesManager.init();
 
-    if (typeof options.defaultpolicy !== "undefined") {
-        let rules = await RulesManager.getAllStaticRules();
-        RulesManager.setDefaultRuleset(rules[options.defaultpolicy].id);
-    }
+    document.body.classList.toggle("hide-advanced", !options.advanced);
+
+    if (options.defaultpolicy !== undefined)
+        await RulesManager.applyDefaultPolicy(options.defaultpolicy);
 }
 
 await applyOptions();

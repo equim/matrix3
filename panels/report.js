@@ -40,7 +40,35 @@ originList.addEventListener("change", () => {
     populateServerPolicy();
 });
 
-directivesTable.addEventListener("change", () => setCurrentRules(originList.value));
+// 'none' must be alone in a CSP source list (spec). In every column,
+// checking 'none' clears every other source; checking anything else clears
+// 'none'.
+function enforceNoneLeader(target) {
+    let cell = target.closest("td");
+    let noneRow = utils.findTableRow(directivesTable, "'none'");
+    let col;
+    let noneBox;
+    let group;
+
+    if (!target.checked)
+        return;
+    if (!cell || !noneRow)
+        return;
+
+    col = cell.cellIndex;
+    noneBox = noneRow.cells[col].firstChild;
+    group = Array.from(directivesTable.tBodies[0].rows, r => r.cells[col].firstChild);
+
+    if (target === noneBox)
+        utils.checkboxMutex(group, noneBox);
+    else
+        noneBox.checked = false;
+}
+
+directivesTable.addEventListener("change", (event) => {
+    enforceNoneLeader(event.target);
+    setCurrentRules(originList.value);
+});
 sandboxTable.addEventListener("change", () => setCurrentRules(originList.value));
 
 function resetSandboxDirectives()
@@ -80,9 +108,6 @@ function addSourceCheckboxRow(source)
         box.type = "checkbox";
         box.checked = false;
         box.className = "rule";
-        // default-src is controlled by the static ruleset; lock per-host edits.
-        if (col === "default-src")
-            box.disabled = true;
         cell.appendChild(box);
     }
 
@@ -144,8 +169,6 @@ function collapseDirective(directive)
 async function getCurrentRules(hostName)
 {
     // Fill in checkboxes based on current rules
-    await RulesManager.init();
-
     let rule = RulesManager.getHostRule(hostName);
 
     if (!rule) {
@@ -195,9 +218,6 @@ async function setCurrentRules(hostName)
 {
     let srcs = utils.getTableRowProps(directivesTable, "textContent");
     let dirs = utils.getTableColProps(directivesTable, "id");
-
-    await RulesManager.init();
-
     let policy = (await RulesManager.getEmptyRule(hostName)).toPolicy();
 
     // Throwaway the row-title column id
@@ -222,6 +242,9 @@ async function setCurrentRules(hostName)
         }
     }
 
+    // Reset before write — see NOTES.md "Inherited directives in setCurrentRules".
+    delete policy.directives["default-src"];
+
     for (let dir of dirs) {
         for (let src of srcs) {
             if (!getSourceCheckboxState(src, dir))
@@ -243,6 +266,8 @@ async function setCurrentRules(hostName)
     let sbx = document.querySelector("input#sandbox-enabled");
     let features = Array.from(document.querySelectorAll("td input.sandbox.allow:checked"), f => f.id);
 
+    // Reset before write — see NOTES.md "Inherited directives in setCurrentRules".
+    delete policy.directives.sandbox;
     if (sbx.checked)
         policy.directives.sandbox = features;
 
@@ -260,14 +285,14 @@ async function populateOriginList(preferredDomain) {
         let u = new URL(f.url);
         if (u.origin == "null")
             continue;
-        let domain = await psl.getRegistrableDomain(u.hostname);
+        let domain = await psl.getScopedDomain(u.hostname);
         domains.add(domain);
         if (f.frameId === 0)
             topDomain = domain;
     }
 
     // Keep the preferred domain if it's still on the page, otherwise fall
-    // back to the top frame's registrable.
+    // back to the top frame's scoped key.
     let target = topDomain;
     if (domains.has(preferredDomain))
         target = preferredDomain;

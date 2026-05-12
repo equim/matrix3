@@ -7,9 +7,7 @@ const dynamicTbl = document.getElementById('dynamic');
 const sessionTbl = document.getElementById('session');
 const staticTbl = document.getElementById('static');
 
-document.getElementById('query').addEventListener("click", async () => {
-    await RulesManager.init();
-
+async function updateRuleTables() {
     let rules = RulesManager.getAllRules();
     let base  = RulesManager.getAllStaticRules();
 
@@ -43,7 +41,7 @@ document.getElementById('query').addEventListener("click", async () => {
         row.insertCell(-1).appendChild(chk);
         row.insertCell(-1).innerText = base[i].id;
     }
-});
+}
 
 document.getElementById('apply').addEventListener("click", async () => {
     let toDisable;
@@ -68,3 +66,14 @@ document.getElementById('apply').addEventListener("click", async () => {
     toEnable.forEach(r => RulesManager.enableStaticRuleset(r));
     toDisable.forEach(r => RulesManager.disableStaticRuleset(r));
 });
+
+document.getElementById('query').addEventListener("click", async () => {
+    await RulesManager.init();
+    updateRuleTables();
+});
+document.getElementById('reset').addEventListener("click", async () => {
+    await RulesManager.resetAllRules();
+    updateRuleTables();
+});
+updateRuleTables();
+

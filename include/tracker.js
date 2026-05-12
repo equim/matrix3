@@ -48,19 +48,21 @@ export default class ViolationTracker {
             if (blocked === undefined)
                 console.log("tracker", "what is this", report.blocked);
         } else {
-            // Collapse subdomain origins to a registrable-domain wildcard so
-            // the user isn't drowning in per-host directives.
+            // Collapse subdomain origins to a wildcard at the user's chosen
+            // scope so they aren't drowning in per-host directives. In "host"
+            // scope getScopedDomain returns the hostname unchanged and the
+            // wildcard branch below becomes a no-op.
             const u = new URL(blocked);
-            const registrable = await psl.getRegistrableDomain(u.hostname);
-            let hostpart = registrable;
-            if (u.hostname != registrable)
-                hostpart = `*.${registrable}`;
+            const scoped = await psl.getScopedDomain(u.hostname);
+            let hostpart = scoped;
+            if (u.hostname != scoped)
+                hostpart = `*.${scoped}`;
             blocked = `${u.protocol}//${hostpart}`;
         }
 
-        // Bucket by the initiator's registrable domain so the panel can find
-        // it with the same key it puts in the dropdown.
-        let domain = await psl.getRegistrableDomain(new URL(origin).hostname);
+        // Bucket by the initiator at the user's chosen scope so the panel
+        // can find it with the same key it puts in the dropdown.
+        let domain = await psl.getScopedDomain(new URL(origin).hostname);
 
         tab.policy[domain] ??= {};
         tab.policy[domain][report.directive] ??= new Set();
@@ -74,7 +76,7 @@ export default class ViolationTracker {
 
     async addServerPolicy(tabId, url, header) {
         let tab = this.#getOrCreateTab(tabId);
-        let domain = await psl.getRegistrableDomain(new URL(url).hostname);
+        let domain = await psl.getScopedDomain(new URL(url).hostname);
         tab.server[domain] ??= new Set();
         tab.server[domain].add(header);
     }

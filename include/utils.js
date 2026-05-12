@@ -42,3 +42,18 @@ export function getTableRowProps(table, prop) {
 export function findTableRow(table, label) {
     return Array.from(table.tBodies[0].rows).find(r => r.cells[0].textContent === label);
 }
+
+// Enforce single-checked semantics across a checkbox group. When `target`
+// belongs to `group` and was just checked, uncheck every other member.
+// `group` may be a NodeList, array, or any iterable of checkboxes.
+export function checkboxMutex(group, target) {
+    let boxes = Array.from(group);
+
+    if (!target.checked)
+        return;
+    if (!boxes.includes(target))
+        return;
+
+    for (let box of boxes)
+        if (box !== target) box.checked = false;
+}

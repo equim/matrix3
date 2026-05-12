@@ -60,3 +60,18 @@ export async function getRegistrableDomain(host)
     cache.set(host, host);
     return host;
 }
+
+// Resolves `host` to the scope the user picked in Options. "domain" is the
+// PSL registrable; "host" returns the literal hostname. Future scopes (eTLD+1,
+// protocol-prefixed, etc.) get added as switch cases here.
+export async function getScopedDomain(host)
+{
+    const { options } = await chrome.storage.sync.get("options");
+    switch (options?.defaultscope) {
+        case "host":
+            return host;
+        case "domain":
+        default:
+            return getRegistrableDomain(host);
+    }
+}
