@@ -5,7 +5,7 @@
 // Current implementation: probe Chrome's built-in PSL via the cookies API.
 // Chrome refuses to set a cookie whose `domain` is itself a public suffix, so
 // we climb the labels right-to-left and return the shortest one Chrome accepted.
-// IP literals fall out naturally — every partial-IP candidate is rejected and
+// IP literals fall out naturally -- every partial-IP candidate is rejected and
 // we return the host unchanged.
 
 const cache = new Map();

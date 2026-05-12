@@ -9,7 +9,7 @@ let server = new RequestServer(tracker);
 
 // Apply stored options at browser-start / install. Until this runs the
 // manifest defaults are in effect, which doesn't match the user's saved
-// defaultpolicy slider — fixes the "options only apply after opening the
+// defaultpolicy slider -- fixes the "options only apply after opening the
 // sidepanel" gap.
 async function applyStoredOptions() {
     let { options } = await chrome.storage.sync.get("options");

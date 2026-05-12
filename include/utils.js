@@ -32,7 +32,7 @@ export function getTableColProps(table, prop) {
     return Array.from(table.tHead.rows[0].cells, c => c[prop]);
 }
 
-// Return a property from each body row's first cell — typically the row
+// Return a property from each body row's first cell -- typically the row
 // label, e.g. ('textContent') for row titles.
 export function getTableRowProps(table, prop) {
     return Array.from(table.tBodies[0].rows, r => r.cells[0][prop]);

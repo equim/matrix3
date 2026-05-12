@@ -33,11 +33,11 @@
         "path": "firstparty.json"
       }, {
         "id": "sandbox",
-        "enabled": false,
+        "enabled": true,
         "path": "sandbox.json"
       }, {
         "id": "strict",
-        "enabled": true,
+        "enabled": false,
         "path": "strict.json"
       }
     ]

@@ -69,7 +69,21 @@ directivesTable.addEventListener("change", (event) => {
     enforceNoneLeader(event.target);
     setCurrentRules(originList.value);
 });
-sandboxTable.addEventListener("change", () => setCurrentRules(originList.value));
+sandboxTable.addEventListener("change", (event) => {
+    let sbx = document.querySelector("input#sandbox-enabled");
+
+    // When the user disables sandbox, if there's no default-src set, fall
+    // back to 'self' -- otherwise the resulting CSP would implicitly allow
+    // everything. Only fire on the sandbox-enabled toggle itself, not on
+    // allow-* checkbox changes.
+    if (event.target === sbx && !sbx.checked) {
+        let col = utils.getTableColProps(directivesTable, "id").indexOf("default-src");
+        let boxes = Array.from(directivesTable.tBodies[0].rows, r => r.cells[col].firstChild);
+        if (!boxes.some(b => b.checked))
+            findCheckbox("'self'", "default-src", true).checked = true;
+    }
+    setCurrentRules(originList.value);
+});
 
 function resetSandboxDirectives()
 {
@@ -242,7 +256,7 @@ async function setCurrentRules(hostName)
         }
     }
 
-    // Reset before write — see NOTES.md "Inherited directives in setCurrentRules".
+    // Reset before write -- see NOTES.md "Inherited directives in setCurrentRules".
     delete policy.directives["default-src"];
 
     for (let dir of dirs) {
@@ -266,7 +280,7 @@ async function setCurrentRules(hostName)
     let sbx = document.querySelector("input#sandbox-enabled");
     let features = Array.from(document.querySelectorAll("td input.sandbox.allow:checked"), f => f.id);
 
-    // Reset before write — see NOTES.md "Inherited directives in setCurrentRules".
+    // Reset before write -- see NOTES.md "Inherited directives in setCurrentRules".
     delete policy.directives.sandbox;
     if (sbx.checked)
         policy.directives.sandbox = features;

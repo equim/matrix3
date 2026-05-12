@@ -145,7 +145,7 @@ export default class Rules {
     #allRules;
 
     // Map the defaultpolicy option slider (0-4) to the static rulesets that
-    // should be enabled alongside the always-on `base`. Additive — higher
+    // should be enabled alongside the always-on `base`. Additive -- higher
     // levels stack rulesets rather than replacing them.
     static PolicyRulesets = [
         [],                          // 0: Off
@@ -229,7 +229,7 @@ export default class Rules {
         if (oldRule) {
             removeId.push(oldRule.id);
             // Only session rules are actually deleted by updateSessionRules
-            // below — a dynamic oldRule.id is silently ignored, so the mirror
+            // below -- a dynamic oldRule.id is silently ignored, so the mirror
             // must mirror that asymmetry.
             if (oldRule.isSession) {
                 this.#sessionRules = this.#sessionRules.filter(r => r.id != oldRule.id);
