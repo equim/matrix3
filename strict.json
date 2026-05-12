@@ -20,7 +20,7 @@
         {
           "header": "Content-Security-Policy",
           "operation": "set",
-          "value": "default-src 'none'; report-uri chrome-extension://_matrix3.internal/csp-report"
+          "value": "default-src 'none'; report-uri https://_matrix3.internal/csp-report"
         }
       ]
     },
