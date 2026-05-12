@@ -9,20 +9,13 @@ export default class RequestServer {
     }
 
     messageHandler(request, sender, sendResponse) {
-        if (typeof request.command === 'undefined')
-            return;
-
         switch (request.command) {
-            case MessageTypes.REQ_POLICY: {
+            case MessageTypes.REQ_POLICY:
                 sendResponse(this.tracker.getDirectives(request.data.id, request.data.domain));
                 break;
-            }
-            case MessageTypes.REQ_HEADERS: {
+            case MessageTypes.REQ_HEADERS:
                 sendResponse(this.tracker.getServerPolicy(request.data.id, request.data.domain));
                 break;
-            }
         }
-
-        return;
     }
 }

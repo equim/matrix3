@@ -12,16 +12,16 @@ const sandboxTable = document.querySelector("table#sandbox")
 const originList = document.querySelector("select#frames")
 const headerList = document.querySelector("textarea#servercsp")
 
-document.getElementById('query').addEventListener("click", () => updateReport());
-
-document.getElementById('apply').addEventListener("click", async () => {
-    await setCurrentRules(originList.value);
-});
+// TODO: after commit/reset the loaded page is still running under the
+// previous CSP (headers are set per-response); we should prompt the user
+// to reload so the new state takes effect.
 document.getElementById('commit').addEventListener("click", async () => {
     await RulesManager.commitSessionRulesForHost(originList.value);
+    updateReport();
 });
 document.getElementById('reset').addEventListener("click", async () => {
     await RulesManager.resetHostRules(originList.value);
+    updateReport();
 });
 document.getElementById('reload').addEventListener("click", async () => {
     await chrome.tabs.reload();
@@ -40,15 +40,17 @@ originList.addEventListener("change", () => {
     populateServerPolicy();
 });
 
+directivesTable.addEventListener("change", () => setCurrentRules(originList.value));
+sandboxTable.addEventListener("change", () => setCurrentRules(originList.value));
+
 function resetSandboxDirectives()
 {
-    let features = Array.from(document.querySelectorAll("td input.sandbox"));
-    features.forEach(el => el.checked = false);
+    document.querySelectorAll("td input.sandbox").forEach(el => el.checked = false);
 }
 
 function resetDirectivesTable()
 {
-    utils.clearTable(directivesTable, true);
+    utils.clearTable(directivesTable);
 
     // Add some default sources.
     addSourceCheckboxRow("'none'");
@@ -65,42 +67,44 @@ function resetDirectivesTable()
 // Add a row with specified source name
 function addSourceCheckboxRow(source)
 {
-    let row = directivesTable.insertRow(-1);
-    let num = directivesTable.rows[0].cells.length;
+    let row = directivesTable.tBodies[0].insertRow(-1);
+    let cols = utils.getTableColProps(directivesTable, "id");
     let title = document.createElement("th");
 
     title.textContent = source;
     row.appendChild(title);
 
-    for (let i = 1; i < num; i++) {
+    for (let col of cols.slice(1)) {
         let cell = row.insertCell(-1);
         let box = document.createElement("input");
         box.type = "checkbox";
         box.checked = false;
         box.className = "rule";
+        // default-src is controlled by the static ruleset; lock per-host edits.
+        if (col === "default-src")
+            box.disabled = true;
         cell.appendChild(box);
     }
 
-    return directivesTable.rows.length - 1;
+    return row;
 }
 
 function findCheckbox(source, directive, autoAdd)
 {
-    let rows = Array.from(directivesTable.rows).map(r => r.cells[0].textContent);
-    let cols = Array.from(directivesTable.rows[0].cells).map(c => c.id);
-    let rowNum = rows.indexOf(source);
+    let cols = utils.getTableColProps(directivesTable, "id");
+    let row = utils.findTableRow(directivesTable, source);
     let colNum = cols.indexOf(directive);
 
-    if (rowNum == -1 && autoAdd) {
+    if (!row && autoAdd) {
         console.log("report", `source name ${source} is unknown, adding`);
-        rowNum = addSourceCheckboxRow(source);
+        row = addSourceCheckboxRow(source);
     }
-    if (rowNum == -1 || colNum == -1) {
+    if (!row || colNum == -1) {
         console.log("report", `checkbox for ${directive} ${source} does not exist`);
         return null;
     }
 
-    return directivesTable.rows[rowNum].cells[colNum].firstChild;
+    return row.cells[colNum].firstChild;
 }
 
 function setSourceCheckboxState(source, directive, state, className)
@@ -144,7 +148,7 @@ async function getCurrentRules(hostName)
 
     let rule = RulesManager.getHostRule(hostName);
 
-    if (typeof rule == "undefined") {
+    if (!rule) {
         console.log("report", `no existing rule for ${hostName}`);
         rule = await RulesManager.getEmptyRule(hostName);
     }
@@ -162,8 +166,8 @@ async function getCurrentRules(hostName)
             let features = Array.from(document.querySelectorAll("td input.sandbox"));
 
             sbx.checked = true;
-            for (let i = 0; i < sources.length; i++) {
-                let box = features.find(f => f.id == sources[i]);
+            for (let id of sources) {
+                let box = features.find(f => f.id == id);
                 box.checked = true;
             }
             continue;
@@ -173,9 +177,8 @@ async function getCurrentRules(hostName)
             continue;
 
         let dir = collapseDirective(directive);
-        for (let i = 0; i < sources.length; i++) {
-            setSourceCheckboxState(sources[i], dir, true, className);
-        }
+        for (let src of sources)
+            setSourceCheckboxState(src, dir, true, className);
     }
 }
 
@@ -183,23 +186,21 @@ function setCurrentViolations(data)
 {
     for (let directive in data) {
         let dir = collapseDirective(directive);
-        for (let i = 0; i < data[directive].length; i++) {
-            setSourceCheckboxClass(data[directive][i], dir, "violation");
-        }
+        for (let src of data[directive])
+            setSourceCheckboxClass(src, dir, "violation");
     }
 }
 
 async function setCurrentRules(hostName)
 {
-    let srcs = Array.from(directivesTable.rows).map(r => r.cells[0].textContent);
-    let dirs = Array.from(directivesTable.rows[0].cells).map(c => c.id);
+    let srcs = utils.getTableRowProps(directivesTable, "textContent");
+    let dirs = utils.getTableColProps(directivesTable, "id");
 
     await RulesManager.init();
 
     let policy = (await RulesManager.getEmptyRule(hostName)).toPolicy();
 
-    // Throwaway the headers
-    srcs.shift();
+    // Throwaway the row-title column id
     dirs.shift();
 
     // Passthrough security-relevant directives the server set that we don't
@@ -221,27 +222,26 @@ async function setCurrentRules(hostName)
         }
     }
 
-    for (let i = 0; i < dirs.length; i++) {
-        for (let j = 0; j < srcs.length; j++) {
-            if (!getSourceCheckboxState(srcs[j], dirs[i]))
+    for (let dir of dirs) {
+        for (let src of srcs) {
+            if (!getSourceCheckboxState(src, dir))
                 continue;
-            if (typeof policy.directives[dirs[i]] == "undefined")
-                policy.directives[dirs[i]] = [];
-            if (policy.directives[dirs[i]].indexOf(srcs[j]) >= 0)
+            policy.directives[dir] ??= [];
+            if (policy.directives[dir].includes(src))
                 continue;
-            if (policy.directives[dirs[i]].indexOf("'none'") >= 0)
+            if (policy.directives[dir].includes("'none'"))
                 continue;
-            if (srcs[j] == "'none'") {
-                policy.directives[dirs[i]] = ["'none'"];
+            if (src == "'none'") {
+                policy.directives[dir] = ["'none'"];
                 continue;
             }
-            policy.directives[dirs[i]].push(srcs[j]);
+            policy.directives[dir].push(src);
         }
     }
 
     // Now check for sandbox policies.
     let sbx = document.querySelector("input#sandbox-enabled");
-    let features = Array.from(document.querySelectorAll("td input.sandbox.allow:checked")).map(f => f.id);
+    let features = Array.from(document.querySelectorAll("td input.sandbox.allow:checked"), f => f.id);
 
     if (sbx.checked)
         policy.directives.sandbox = features;
@@ -297,14 +297,9 @@ async function populateServerPolicy() {
     headerList.value = headers.join("\n") || "none";
 }
 
-async function refreshTable(domain) {
+async function refreshViolations(domain) {
     if (!domain) return;
     let tab = await sidepanel.getActiveTab();
-
-    resetDirectivesTable();
-    resetSandboxDirectives();
-
-    await getCurrentRules(domain);
 
     const violations = await chrome.runtime.sendMessage({
         command: MessageTypes.REQ_POLICY,
@@ -315,6 +310,15 @@ async function refreshTable(domain) {
     });
 
     setCurrentViolations(violations);
+    utils.sortTable(directivesTable);
+}
+
+async function refreshTable(domain) {
+    if (!domain) return;
+    resetDirectivesTable();
+    resetSandboxDirectives();
+    await getCurrentRules(domain);
+    await refreshViolations(domain);
 }
 
 async function updateReport() {
@@ -323,9 +327,17 @@ async function updateReport() {
     await populateOriginList(prev);
     await refreshTable(originList.value);
     populateServerPolicy();
-};
+}
 
 chrome.webNavigation.onCommitted.addListener(() => updateReport());
 chrome.tabs.onActivated.addListener(() => updateReport());
+chrome.runtime.onMessage.addListener((msg) => {
+    switch (msg.command) {
+        case MessageTypes.NOTIFY_UPDATE:
+            refreshViolations(originList.value);
+            populateServerPolicy();
+            break;
+    }
+});
 
 updateReport();

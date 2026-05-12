@@ -11,6 +11,7 @@ export let RulesManager = new Rules();
 const sidepanelPages = {
     "Report": "panels/report.html",
      "Rules": "panels/manage.html",
+    "Groups": "panels/groups.html",
    "Options": "panels/options.html",
     "Export": "panels/export.html",
       "Help": "panels/help.html",

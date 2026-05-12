@@ -37,29 +37,16 @@ export default class ViolationTracker {
         let blocked = report.blocked?.origin;
         let origin = report.initiator?.origin;
 
+        if (!report.initiator || !report.blocked)
+            return;
+
         // Normalize some sources
         if (blocked == origin) {
             blocked = "'self'";
         } else if (blocked == "null") {
-            switch (report.blocked.protocol) {
-                case "unsafe-inline:":
-                case "inline:":
-                    blocked = "'unsafe-inline'";
-                    break;
-                case "wasm-eval:":
-                    blocked = "'wasm-unsafe-eval'";
-                    break;
-                case "eval:":
-                    blocked = "'unsafe-eval'";
-                    break;
-                case "about:":
-                case "data:":
-                case "blob:":
-                        blocked = report.blocked.protocol;
-                        break;
-                default:
-                    console.log("tracker", "what is this", report.blocked);
-            }
+            blocked = CspReport.protocolSource(report.blocked.protocol);
+            if (blocked === undefined)
+                console.log("tracker", "what is this", report.blocked);
         } else {
             // Collapse subdomain origins to a registrable-domain wildcard so
             // the user isn't drowning in per-host directives.

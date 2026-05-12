@@ -1,19 +1,22 @@
 import CspReport from '/include/cspreport.js'
 import ViolationTracker from '/include/tracker.js'
 import RequestServer from '/server.js'
+import { MessageTypes } from '/include/commands.js'
 
 let tracker = new ViolationTracker();
 let server = new RequestServer(tracker);
 
 // Track what security policy hosts request, and make it available to users.
-chrome.webRequest.onHeadersReceived.addListener((details) => {
+chrome.webRequest.onHeadersReceived.addListener(async (details) => {
         let csp = details.responseHeaders.filter(hdr => hdr.name.toLowerCase() == "content-security-policy");
 
-        if (csp.length == 0)
-            return;
-
-        console.log("csp headers for tab", details.tabId, "url", details.url, csp);
-        csp.forEach(hdr => tracker.addServerPolicy(details.tabId, details.url, hdr.value));
+        for (let hdr of csp)
+            await tracker.addServerPolicy(details.tabId, details.url, hdr.value);
+        if (csp.length)
+            chrome.runtime.sendMessage({
+                command: MessageTypes.NOTIFY_UPDATE,
+                   data: { id: details.tabId }
+            }).catch(() => {});
     }, {
         types: [ "main_frame", "sub_frame" ],
         urls: [ "<all_urls>" ]
@@ -21,13 +24,12 @@ chrome.webRequest.onHeadersReceived.addListener((details) => {
 );
 
 // Monitor for CSP violation reports.
-chrome.webRequest.onBeforeRequest.addListener((details) => {
-        let csp = new CspReport(details);
-
-        //console.log("csp report for", csp.docuri);
-
-        // Now add this to the map of known directives
-        tracker.addTabViolation(details.tabId, csp);
+chrome.webRequest.onBeforeRequest.addListener(async (details) => {
+        await tracker.addTabViolation(details.tabId, new CspReport(details));
+        chrome.runtime.sendMessage({
+            command: MessageTypes.NOTIFY_UPDATE,
+               data: { id: details.tabId }
+        }).catch(() => {});
     }, {
         types: [ "csp_report" ],
          urls: [ "<all_urls>" ]

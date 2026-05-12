@@ -9,23 +9,19 @@ export default class CspReport {
     tabId;
 
     #decodeReportUri(uri) {
-        switch (uri) {
-            case "about":
-            case "data":
-            case "blob":
-            case "eval":
-            case "wasm-eval":
-                uri += ":";
-                break;
-            case "inline":
-                uri = "unsafe-inline:";
+        if (uri === "null") {
+            // Sandboxed contexts, form resubmits, anonymous requests.
+            console.log("cspreport", "null uri, skipping");
+            return null;
         }
+        if (CspReport.protocolSource(uri + ":") !== undefined)
+            uri += ":";
 
         try {
             return new URL(uri);
         } catch (e) {
-            console.log("This uri failed:",uri,e);
-            throw(e);
+            console.log("cspreport", "unexpected unparseable uri:", uri, e);
+            return null;
         }
     }
 
@@ -52,9 +48,7 @@ export default class CspReport {
     static #requestBodyDecode(body) {
         // We only need one of these, so initialize it now. I think as this
         // method is static, it will be shared between all callers.
-        if (typeof CspReport.#requestBodyDecode._textdec === 'undefined') {
-            CspReport.#requestBodyDecode._textdec = new TextDecoder("utf-8");
-        }
+        CspReport.#requestBodyDecode._textdec ??= new TextDecoder("utf-8");
         return body.raw.reduce((a, c) => CspReport.#requestBodyDecode._textdec.decode(c.bytes), "");
     }
 
@@ -68,6 +62,25 @@ export default class CspReport {
 
     isOutermost() {
         return this.#request.frameType === "outermost_frame";
+    }
+
+    // CSP report's "blocked-uri" can be a real URL or a pseudo-scheme used
+    // by the browser to represent opaque sources (inline scripts, eval,
+    // etc). After parsing through new URL(), the .protocol of those
+    // pseudo-schemes maps to the CSP source-list keyword that allows them.
+    static protocolSource(protocol) {
+        switch (protocol) {
+            case "inline:":
+                return "'unsafe-inline'";
+            case "eval:":
+                return "'unsafe-eval'";
+            case "wasm-eval:":
+                return "'wasm-unsafe-eval'";
+            case "about:":
+            case "data:":
+            case "blob:":
+                return protocol;
+        }
     }
 }
 

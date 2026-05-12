@@ -122,29 +122,16 @@ class Ruleset {
     async toPolicy()
     {
         let policy = new Policy();
+        let csp;
 
-        // Lets see if there is a header we can parse.
         await this.#load();
 
-        // Extract the headers.
-        let hdrs = this.json?.action?.responseHeaders;
-
-        // No policy, just return a default empty policy.
-        if (typeof hdrs == "undefined")
+        csp = this.json?.action?.responseHeaders?.find(r => r.header == "Content-Security-Policy");
+        if (!csp)
             return policy;
-
-        // Find the CSP
-        let csp = hdrs.find(r => r.header == "Content-Security-Policy");
-
-        // None found
-        if (typeof csp == "undefined")
-            return policy;
-
-        // Must be removing?!
         if (csp.operation != "set")
             return policy;
 
-        // Okay, try to parse it.
         return policy.fromHeader(csp.value);
     }
 }
@@ -200,9 +187,8 @@ export default class Rules {
         let defaultRule = this.#staticRulesets.find(r => r.enabled && !r.isRequired());
 
         // Try to load that rule to see what it does.
-        if (typeof defaultRule !== "undefined") {
-            policy = await defaultRule.toPolicy()
-        }
+        if (defaultRule)
+            policy = await defaultRule.toPolicy();
 
         rule.id = this.#getNextId();
         rule.priority = 2;
@@ -221,7 +207,7 @@ export default class Rules {
         rule.fromPolicy(rulePolicy);
         this.#sessionRules.push(rule.toRule());
         this.#allRules.push(rule);
-        if (typeof oldRule != "undefined")
+        if (oldRule)
             removeId.push(oldRule.id);
         await chrome.declarativeNetRequest.updateSessionRules({
             removeRuleIds: removeId,
@@ -261,7 +247,7 @@ export default class Rules {
     // The session rule for matching host becomes a dynamic rule
     async commitSessionRulesForHost(hostName) {
         let rule = this.#allRules.find(r => r.isSession && r.host == hostName);
-        if (typeof rule == "undefined")
+        if (!rule)
             return;
         await chrome.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: [],
