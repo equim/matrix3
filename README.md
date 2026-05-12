@@ -1,3 +1,5 @@
+# matrix³
+
 This is matrix³, an experimental mv3 content policy manager.
 
 This is extension is inspired by [uMatrix](https://github.com/gorhill/uMatrix),
