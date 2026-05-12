@@ -237,6 +237,11 @@ export default class Rules {
             }
         }
 
+        // We're about to install this via updateSessionRules, so mark it as
+        // a session rule in the mirror -- otherwise a follow-up addSessionRule
+        // would treat oldRule as dynamic, skip the mirror cleanup, and leak
+        // orphan rule ids on every toggle.
+        rule.isSession = true;
         this.#sessionRules.push(rule.toRule());
         this.#allRules.push(rule);
 

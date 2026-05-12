@@ -42,6 +42,10 @@ table#sandbox th {
     text-align: left
 }
 
+table#sandbox:not(:has(input#sandbox-enabled:checked)) tbody {
+    opacity: 0.5;
+}
+
 body.hide-advanced :is(col, tr).advanced {
     visibility: collapse
 }
