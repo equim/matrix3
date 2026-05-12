@@ -34,10 +34,14 @@ td:has(input#sandbox-enabled:checked):after {
     content: "🔒"
 }
 
-table#sandbox {
+table#sandbox:not(:has(input.sandbox:checked)) {
     display: none
 }
 
 table#sandbox th {
     text-align: left
+}
+
+body.hide-advanced :is(col, tr).advanced {
+    visibility: collapse
 }

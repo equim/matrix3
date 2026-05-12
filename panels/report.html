@@ -23,6 +23,21 @@
 <div>
     <table id="sources">
         <caption>Source Directives</caption>
+        <colgroup>
+            <col id=col-src>
+            <col id=col-default-src>
+            <col id=col-child-src class="advanced">
+            <col id=col-connect-src>
+            <col id=col-font-src>
+            <col id=col-frame-src>
+            <col id=col-img-src>
+            <col id=col-manifest-src class="advanced">
+            <col id=col-media-src class="advanced">
+            <col id=col-object-src class="advanced">
+            <col id=col-script-src>
+            <col id=col-style-src>
+            <col id=col-worker-src class="advanced">
+        </colgroup>
         <thead>
             <tr>
                 <th id=src>Source</th>
@@ -68,10 +83,14 @@
                 <td><input type=checkbox id=allow-forms class="sandbox allow"></input></td>
             </tr>
             <tr>
+                <th><label for=allow-modals>Modals</label></td>
+                <td><input type=checkbox id=allow-modals class="sandbox allow"></input></td>
+            </tr>
+            <tr class="advanced">
                 <th><label for=allow-orientation-lock>Orientation Lock</label></td>
                 <td><input type=checkbox id=allow-orientation-lock class="sandbox allow"></input></td>
             </tr>
-            <tr>
+            <tr class="advanced">
                 <th><label for=allow-pointer-lock>Pointer Lock</label></td>
                 <td><input type=checkbox id=allow-pointer-lock class="sandbox allow"></input></td>
             </tr>
@@ -83,8 +102,8 @@
                 <th><label for=allow-popups-to-escape-sandbox>Popups Escape Sandbox</label></td>
                 <td><input type=checkbox id=allow-popups-to-escape-sandbox class="sandbox allow"></input></td>
             </tr>
-            <tr>
-                <th><label for=allow-same-origin class=sandbox>Presentation</label></td>
+            <tr class="advanced">
+                <th><label for=allow-presentation>Presentation</label></td>
                 <td><input type=checkbox id=allow-presentation class="sandbox allow"></input></td>
             </tr>
             <tr>
@@ -95,7 +114,7 @@
                 <th><label for=allow-scripts>Scripts</label></td>
                 <td><input type=checkbox id=allow-scripts class="sandbox allow"></input></td>
             </tr>
-            <tr>
+            <tr class="advanced">
                 <th><label for=allow-storage-access-by-user-activation>Storage Access by User Activation</label></td>
                 <td><input type=checkbox id=allow-storage-access-by-user-activation class="sandbox allow"></input></td>
             </tr>
@@ -103,11 +122,11 @@
                 <th><label for=allow-top-navigation>Top Navigation</label></td>
                 <td><input type=checkbox id=allow-top-navigation class="sandbox allow"></input></td>
             </tr>
-            <tr>
+            <tr class="advanced">
                 <th><label for=allow-top-navigation-by-user-activation>Top Navigation by User Activation</label></td>
                 <td><input type=checkbox id=allow-top-navigation-by-user-activation class="sandbox allow"></input></td>
             </tr>
-            <tr>
+            <tr class="advanced">
                 <th><label for=allow-top-navigation-to-custom-protocols>Top Navigation to Custom Protocols</label></td>
                 <td><input type=checkbox id=allow-top-navigation-to-custom-protocols class="sandbox allow"></input></td>
             </tr>
