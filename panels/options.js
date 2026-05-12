@@ -1,7 +1,7 @@
 import * as utils from '/include/utils.js'
 import * as sidepanel from '/include/sidepanel.js'
 
-const optionElements = document.querySelectorAll("input.option");
+const optionElements = document.querySelectorAll(".option");
 
 function syncOptionChanges(event) {
     switch (event.target.type) {
@@ -13,8 +13,13 @@ function syncOptionChanges(event) {
             sidepanel.options[event.target.id] = parseInt(event.target.value);
             break;
         }
+        case "select-one": {
+            sidepanel.options[event.target.id] = event.target.value;
+            break;
+        }
     }
     chrome.storage.sync.set({ options: sidepanel.options });
+    sidepanel.applyOptions();
 }
 
 for (let i = 0; i < optionElements.length; i++) {
@@ -29,6 +34,11 @@ for (let i = 0; i < optionElements.length; i++) {
         }
         case "range": {
             optionElements[i].value = sidepanel.options[optionElements[i].id];
+            break;
+        }
+        case "select-one": {
+            if (sidepanel.options[optionElements[i].id])
+                optionElements[i].value = sidepanel.options[optionElements[i].id];
             break;
         }
     }
