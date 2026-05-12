@@ -36,8 +36,9 @@ async function updateRuleTables() {
         let chk = document.createElement("input");
         chk.type = "checkbox";
         chk.checked = await base[i].isEnabled();
-        chk.disabled = base[i].isRequired();
+        chk.disabled = true;
         chk.className = "rule";
+        chk.title = "Adjust Rulesets in Options...";
         row.insertCell(-1).appendChild(chk);
         row.insertCell(-1).innerText = base[i].id;
     }
