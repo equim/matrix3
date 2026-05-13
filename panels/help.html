@@ -66,12 +66,14 @@ group and click <b>Trust</b> to allow all its origins for the current host
 at once. Click <b>Untrust</b> to remove them.
 </p>
 <h2>Options</h2>
-<h3>Show Advanced Directives</h3>
+<h3>Always Show Advanced Directives</h3>
 <p>
-Content Security Policy defines a lot of directives that are usually not very
-exciting, like <i>manifest-src</i> and </i>orientation-lock</i>. matrix³ tries
-to guess what you would want based on more general settings. If you want more
-precise control, you can enable this.
+Some Content Security Policy directives like <i>worker-src</i>,
+<i>child-src</i>, <i>manifest-src</i>, and <i>object-src</i> are rarely
+needed. By default, matrix³ keeps their columns hidden in the
+<b>Report</b> page and only reveals a column when one of its cells has a
+violation or a checked source. Enable this option to keep all the advanced
+columns visible at all times.
 </p>
 <h3>Show Icon Badges</h3>
 <p>

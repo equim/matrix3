@@ -33,15 +33,17 @@ export default class ViolationTracker {
         let origin = report.initiator?.origin;
 
         if (!report.initiator || !report.blocked)
-            return;
+            return false;
 
         // Normalize some sources
         if (blocked == origin) {
             blocked = "'self'";
         } else if (blocked == "null") {
             blocked = CspReport.protocolSource(report.blocked.protocol);
-            if (blocked === undefined)
-                console.log("tracker", "what is this", report.blocked);
+            if (blocked === undefined) {
+                console.log("tracker", "unknown blocked pseudo-scheme", report.blocked);
+                return false;
+            }
         } else {
             // Collapse subdomains to a wildcard at the user's chosen scope. In
             // "host" scope getScopedDomain is a passthrough and the wildcard
@@ -61,6 +63,7 @@ export default class ViolationTracker {
         tab.policy[domain] ??= {};
         tab.policy[domain][report.directive] ??= new Set();
         tab.policy[domain][report.directive].add(blocked);
+        return true;
     }
 
     // Called from webNavigation.onBeforeNavigate; drop everything we know about the tab.

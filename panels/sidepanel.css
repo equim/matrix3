@@ -45,14 +45,42 @@ table#sandbox th {
 table#sandbox tbody th {
     padding-left: 1.5em;
     font-weight: normal;
+    max-width: 24ch;
+    width: fit-content;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+table#sources tbody th {
+    max-width: 12ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+table#sandbox tbody th:before {
+    content: " Allow ";
 }
 
 table#sandbox:not(:has(input#sandbox-enabled:checked)) tbody {
     display: none;
 }
 
-body.hide-advanced :is(col, tr).advanced {
-    visibility: collapse
+:is(col, tr).advanced {
+    visibility: collapse;
+}
+
+table#sources:has(td.advanced input:is(:checked, .violation)) col.advanced {
+    visibility: visible;
+}
+
+tr.advanced:has(input:checked) {
+    visibility: visible;
+}
+
+body.show-advanced :is(col, tr).advanced {
+    visibility: visible;
 }
 
 body.standalone #panel {
@@ -67,14 +95,6 @@ body.inert :is(button, table, textarea, #trustcontrol) {
 /* Hide the trust control when there are no groups to choose from. */
 div#trustcontrol:not(:has(option)) {
     display: none;
-}
-
-/* Truncate long sources such as nonces and hashes. */
-table#sources tbody th {
-    max-width: 12ch;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 /* Center the checkboxes */

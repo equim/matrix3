@@ -211,6 +211,7 @@ function addSourceCheckboxRow(source)
 {
     let existing = utils.findTableRow(directivesTable, source);
     let cols = utils.getTableColProps(directivesTable, "id");
+    let colNodes = directivesTable.querySelectorAll("colgroup col");
     let row;
     let title;
 
@@ -224,12 +225,14 @@ function addSourceCheckboxRow(source)
     title.title = source;
     row.appendChild(title);
 
-    for (let col of cols.slice(1)) {
+    for (let i = 1; i < cols.length; i++) {
         let cell = row.insertCell(-1);
         let box = document.createElement("input");
         box.type = "checkbox";
         box.checked = false;
         box.className = "rule";
+        if (colNodes[i].classList.contains("advanced"))
+            cell.classList.add("advanced");
         cell.appendChild(box);
     }
 

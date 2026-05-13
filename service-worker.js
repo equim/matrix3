@@ -60,7 +60,8 @@ chrome.webRequest.onBeforeRequest.addListener(async (details) => {
         // previous page can still be in flight when the user reloads.
         if (!tracker.hasDocument(details.tabId, details.documentId))
             return;
-        await tracker.addTabViolation(details.tabId, new CspReport(details));
+        if (!await tracker.addTabViolation(details.tabId, new CspReport(details)))
+            return;
         setBadge(details.tabId, "!", "#dc2626");
         chrome.runtime.sendMessage({
             command: MessageTypes.NOTIFY_UPDATE,

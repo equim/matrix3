@@ -50,7 +50,7 @@ export async function applyOptions()
 {
     await RulesManager.init();
 
-    document.body.classList.toggle("hide-advanced", !options.advanced);
+    document.body.classList.toggle("show-advanced", !!options.advanced);
 
     if (options.defaultpolicy !== undefined)
         await RulesManager.applyDefaultPolicy(options.defaultpolicy);
