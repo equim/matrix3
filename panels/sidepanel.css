@@ -25,13 +25,13 @@ textarea {
     font-family: monospace;
 }
 
-td:has(input.sandbox:not(checked)):after {
+td:has(input.sandbox:not(:checked)):after {
     content: "🔒"
 }
 td:has(input.sandbox:checked):after {
     content: "🔓"
 }
-td:has(input#sandbox-enabled:not(checked)):after {
+td:has(input#sandbox-enabled:not(:checked)):after {
     content: "🔓"
 }
 td:has(input#sandbox-enabled:checked):after {
@@ -46,7 +46,6 @@ table#sandbox tbody th {
     padding-left: 1.5em;
     font-weight: normal;
     max-width: 24ch;
-    width: fit-content;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
