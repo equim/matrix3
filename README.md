@@ -1,6 +1,6 @@
 # matrix³
 
-This is matrix³, an experimental mv3 content policy manager.
+This is matrix³, an experimental minimalist mv3 content policy manager.
 
 This extension is inspired by [uMatrix](https://github.com/gorhill/uMatrix),
 but built on `declarativeNetRequest` for modern browsers.
@@ -12,62 +12,94 @@ features.
      height="1196"
      src="https://github.com/user-attachments/assets/bccf9075-5853-4d5e-a828-e9ccce3217af" />
 
+This extension basically provides an interface to `Content-Security-Policy`, so
+familiarity with the CSP3 specification is recommended.
+
 ## Installation
 
 1. Clone or download this repository.
-2. Open `chrome://extensions`, enable **Developer mode**, click **Load
-   unpacked**, and point it at the repository root.
+2. Open `chrome://extensions`.
+3. Enable **Developer mode**, and click **Load unpacked**.
 
 ## Usage
 
 Open the sidepanel via the matrix³ toolbar icon. If this is your first time
 using the extension, choose a default policy in the **Options** page.
 
-If a site isn't working, open the **Report** page. Violations are highlighted;
-enable options until the site works. Click **Reload** to reload the tab.
+If a site isn't working, click the toolbar icon and open the **Report** page.
 
-When you're happy with a host's settings, click **Commit** to make them
-persistent. The **Rules** panel shows all dynamic and session rules; you can
-delete individual rules from there.
+A *violation* is a subresource the page requested that was denied, these are
+highlighted in orange. You can enable options until the site works, then click
+**Reload** to reload the tab.
 
-## Policies
+When you're happy with the settings, click **Commit** to make them persistent.
+
+### Suggested Policies
+
+If the server suggests it's own policy, you can either **Accept** or **Merge**
+it with your own rules.
+
+This is entirely optional, you can also ignore what the server suggests.
+
+## Default Policies
 
 The default policy is **Sandbox**, which sandboxes the document -- many pages
-will fail to render correctly. That's intentional; adjust per-host as you go.
+will fail to render correctly. That's intentional; you're expected to adjust
+per-host as you go.
 
-If you find it too restrictive, change the level in **Options**. The policies
-are described here.
+If you find the default too restrictive, change the level in **Options**. The
+available policies are described here.
 
-### Off (level 0)
+### Permissive
 
 Nothing is blocked by default. If you want to reduce permissions for a specific
 site, you need to adjust it in the **Report** tab.
 
-### First Party (level 1)
+### First Party
 
 First-party scripts, styles, and other resources are generally allowed,
 including `'unsafe-inline'` for scripts and styles. Third-party resources are
 blocked unless you give them permission in the **Report** tab.
 
-### Sandbox (level 2)
+### Sandbox
 
-The `sandbox` attribute is applied to every document -- no scripts, forms,
-popups, or top navigation. Add specific `allow-*` exceptions in the
-**Sandbox** section of the **Report** tab if you need them.
+The `sandbox` attribute is applied to every document by default -- no scripts,
+forms, popups, downloads or top navigation. Add specific `allow-*` exceptions
+in the **Sandbox** section of the **Report** tab if you need them.
 
 If you want to disable the sandbox attribute for a site, you can disable it
 and switch to standard source directives (e.g. set `default-src` to `'none'`
 for a strict policy).
 
-### First Party Sandboxed (level 3)
+### First Party Sandboxed
 
 Combines First Party and Sandbox: first-party resources are generally
-allowed, but the document is also sandboxed. Use this when you trust the
-first-party code but want the extra isolation.
+allowed, but the document is also sandboxed.
 
-### Strict (level 4)
+### Strict
 
 Effectively everything is disabled -- `default-src` is set to `'none'`.
 
-Violations will be highlighted in the **Report** tab, and you can enable
-checkboxes until the site works.
+## Rules
+
+This extension provides an interface to *session* and *dynamic* rules, these
+are `declarativeNetRequest` concepts.
+
+A *dynamic* rule is **persistent** and is maintained when you restart Chrome.
+
+A *session* rule is **ephemeral** and discarded when you restart Chrome. This
+is the default, you must click **Commit** to make a rule *dynamic*.
+
+The **Rules** panel shows all dynamic and session rules; you can delete
+individual rules from there.
+
+## Groups
+
+A *group* is a named bundle of origins you frequently want to trust together
+-- for example, the CDNs you allow on most sites, or a set of social media
+embed hosts.
+
+Define groups in the **Groups** page. Then in the **Report** page, pick a
+group from the dropdown and click **Trust** to allow all of its origins for
+the current host at once. **Untrust** removes them.
+
