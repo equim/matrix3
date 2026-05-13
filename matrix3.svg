@@ -1,6 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" style="stroke-linecap:round;stroke-linejoin:round">
-    <rect width="100%" height="100%" style="fill:rgb(50,73,88);"/>
-    <rect x="10%" y="10%" width="30%" height="30%" style="fill:rgb(50,73,88);stroke:rgb(216,216,216);stroke-width:1%;"/>
-    <rect x="10%" y="50%" width="30%" height="30%" style="fill:rgb(50,73,88);stroke:rgb(216,216,216);stroke-width:1%;"/>
-    <rect x="50%" y="10%" width="30%" height="30%" style="fill:rgb(50,73,88);stroke:rgb(216,216,216);stroke-width:1%;"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" rx="24" fill="rgb(50,73,88)"/>
+    <g fill="rgb(216,216,216)">
+        <!-- 2 diagonal cells -->
+        <rect x="10" y="10" width="24" height="24" rx="4"/>
+        <rect x="38" y="38" width="24" height="24" rx="4"/>
+        <!-- 3 in the corner -->
+        <text x="78" y="32"
+          font-family="sans-serif" font-size="24" font-weight="bold"
+          text-anchor="middle">3</text>
+    </g>
+
+    <!-- violation cell (orange background, bottom-left) -->
+    <g fill="rgb(255,165,0)">
+        <rect x="66" y="66" width="24" height="24" rx="4"/>
+    </g>
+
 </svg>
