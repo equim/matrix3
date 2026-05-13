@@ -1,5 +1,4 @@
 // This class is just a simple representation of a csp policy.
-import Rules from '/include/rules.js'
 
 // The default blank policy you get from new Policy()
 const defaultPolicy = {
@@ -7,27 +6,21 @@ const defaultPolicy = {
     "report-uri": [ "https://_matrix3.internal/csp-report" ],
 };
 
-// Server-supplied directives we don't manage in the UI but want to preserve
-// in our generated rule so we don't silently weaken security.
-export const AllowedPassthruDirectives = new Set([
-    "frame-ancestors",
-    "form-action",
-    "upgrade-insecure-requests",
-    "block-all-mixed-content",
-    "require-trusted-types-for",
-    "trusted-types",
-    "base-uri",
-]);
-
 export default class Policy {
-    // Setup all the default directives we use. You can override these if you want.
+    // Default directives -- override per instance as needed.
     directives = structuredClone(defaultPolicy);
 
-    // Initialize a Policy from a Rule object, these are what the RuleManager tracks.
-    fromDynamicRule(ruleObj) {
-        this.directives = {};
-        fromHeader(ruleObj.action.responseHeaders.value);
-    }
+    // Server-supplied directives we don't manage in the UI but want to
+    // preserve in our generated rule so we don't silently weaken security.
+    static AllowedPassthruDirectives = new Set([
+        "frame-ancestors",
+        "form-action",
+        "upgrade-insecure-requests",
+        "block-all-mixed-content",
+        "require-trusted-types-for",
+        "trusted-types",
+        "base-uri",
+    ]);
 
     // Initialize from a HTTP header.
     fromHeader(headerString) {
@@ -36,7 +29,6 @@ export default class Policy {
         // Reset directives, because we're importing from a header.
         this.directives = {};
 
-        // Add each directive to our object.
         for (let i = 0; i < headerTokens.length; i++) {
             const directive = headerTokens[i].trim().split(/\s+/);
             const directiveName = directive.shift();

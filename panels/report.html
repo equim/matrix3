@@ -10,16 +10,27 @@
 <h1>Report</h1>
 <div>
     <p>
-        <label for=frames></label>Origin</label>
+        <label for=frames>Origin</label>
         <select id=frames></select>
     </p>
 </div>
 <div>
     <button id="commit" title="Make these settings dynamic rules">Commit</button>
+    <button id="abandon" title="Discard session changes, restore the dynamic rule">Abandon</button>
     <button id="reset" title="Remove all session and dynamic rules for this host">Reset</button>
     <button id="reload" title="Reload active tab">Reload</button>
+    <button id="unblock" title="Allow sources with reported violations">Unblock</button>
 </div>
 <hr>
+<div id="trustcontrol">
+    <p>
+        <label for="trustgroup">Groups</label>
+        <select id="trustgroup"></select>
+    </p>
+    <button id="trust" title="Add all origins from this group as allowed sources">Trust</button>
+    <button id="untrust" title="Uncheck all origins from this group">Untrust</button>
+    <hr>
+</div>
 <div>
     <table id="sources">
         <caption>Source Directives</caption>
@@ -59,10 +70,7 @@
         </tbody>
     </table>
 </div>
-</br>
-<div>
-    <button id="togglesbx" title="Display Sandbox Directives">Sandbox</button>
-</div>
+<br>
 <hr>
 <div>
     <table id="sandbox">
@@ -133,14 +141,18 @@
         </tbody>
     </table>
 </div>
-</br>
+<br>
 <hr>
 <div>
 <label for=servercsp>Server Suggested Policy</label>
 <textarea id=servercsp readonly>
 none
 </textarea>
+<div>
+    <button id="accept" disabled title="Replace sources with the suggested policy">Accept</button>
+    <button id="merge" disabled title="Add the suggested sources to the current selection">Merge</button>
 </div>
-</br>
+</div>
+<br>
 </body>
 </html>

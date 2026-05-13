@@ -8,64 +8,50 @@ const sessionTbl = document.getElementById('session');
 const staticTbl = document.getElementById('static');
 
 async function updateRuleTables() {
-    let rules = RulesManager.getAllRules();
+    let rules = RulesManager.getRules();
     let base  = RulesManager.getAllStaticRules();
 
     utils.clearTable(dynamicTbl);
     utils.clearTable(sessionTbl);
 
-    for (let i = 0; i < rules.length; i++) {
-        let tbl = rules[i].isSession
-                    ? sessionTbl
-                    : dynamicTbl;
+    for (let rule of rules) {
+        let tbl = dynamicTbl;
+        if (rule.isSession)
+            tbl = sessionTbl;
         let row = tbl.insertRow(-1);
         let chk = document.createElement("input");
         chk.type = "checkbox";
         chk.checked = true;
         chk.className = "rule";
         row.insertCell(-1).appendChild(chk);
-        row.insertCell(-1).innerText = rules[i].id;
-        row.insertCell(-1).innerText = rules[i].host;
-        row.insertCell(-1).innerText = rules[i].policy.toHeader();
+        row.insertCell(-1).innerText = rule.id;
+        row.insertCell(-1).innerText = rule.host;
+        row.insertCell(-1).innerText = rule.policy.toHeader();
     }
 
     utils.clearTable(staticTbl);
 
-    for (let i = 0; i < base.length; i++) {
+    for (let ruleset of base) {
         let row = staticTbl.insertRow(-1);
         let chk = document.createElement("input");
         chk.type = "checkbox";
-        chk.checked = await base[i].isEnabled();
+        chk.checked = await ruleset.isEnabled();
         chk.disabled = true;
         chk.className = "rule";
         chk.title = "Adjust Rulesets in Options...";
         row.insertCell(-1).appendChild(chk);
-        row.insertCell(-1).innerText = base[i].id;
+        row.insertCell(-1).innerText = ruleset.id;
     }
 }
 
 document.getElementById('apply').addEventListener("click", async () => {
-    let toDisable;
-    let toEnable;
-    toDisable = Array.from(sessionTbl.rows, f => f.firstChild)
-                         .filter(f => !f.firstChild.checked)
-                         .map(f => parseInt(f.nextSibling.innerText));
-    toDisable.forEach(rid => RulesManager.delSessionRule({id: rid}));
-    toDisable = Array.from(dynamicTbl.rows, f => f.firstChild)
-                         .filter(f => !f.firstChild.checked)
-                         .map(f => parseInt(f.nextSibling.innerText));
-    toDisable.forEach(rid => RulesManager.delDynamicRule({id: rid}));
+    for (let row of sessionTbl.rows)
+        if (!row.cells[0].firstChild.checked)
+            await RulesManager.delSessionRule({id: parseInt(row.cells[1].innerText)});
 
-    // Now handle static rulesets
-    toEnable = Array.from(staticTbl.rows, f => f.firstChild)
-                        .filter(f => f.firstChild.checked)
-                        .map(f => f.nextSibling.innerText);
-    toDisable = Array.from(staticTbl.rows, f => f.firstChild)
-                        .filter(f => !f.firstChild.checked)
-                        .map(f => f.nextSibling.innerText);
-
-    toEnable.forEach(r => RulesManager.enableStaticRuleset(r));
-    toDisable.forEach(r => RulesManager.disableStaticRuleset(r));
+    for (let row of dynamicTbl.rows)
+        if (!row.cells[0].firstChild.checked)
+            await RulesManager.delDynamicRule({id: parseInt(row.cells[1].innerText)});
 });
 
 document.getElementById('query').addEventListener("click", async () => {
@@ -77,4 +63,3 @@ document.getElementById('reset').addEventListener("click", async () => {
     updateRuleTables();
 });
 updateRuleTables();
-

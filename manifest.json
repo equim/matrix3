@@ -17,6 +17,10 @@
   "side_panel": {
     "default_path": "panels/report.html"
   },
+  "options_ui": {
+    "page": "panels/options.html",
+    "open_in_tab": true
+  },
   "declarative_net_request": {
     "rule_resources": [
       {
@@ -47,7 +51,6 @@
     "webRequest",
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
-    "declarativeNetRequestWithHostAccess",
     "tabs",
     "sidePanel",
     "storage",

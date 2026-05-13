@@ -1,10 +1,8 @@
 import Policy from '/include/policy.js'
 
-// An individual declarativeNetRequest Rule, both Session and Dynamic rules.
-// You can differentiate between them with rule.isSession. Static rules are
-// managed by Ruleset, not individual Rules.
-// Note: This class is hardcoded to handle the rules this extension will
-// generate, not arbitrary rules.
+// A single declarativeNetRequest rule (session or dynamic; isSession
+// distinguishes). Static rulesets are handled by Ruleset, not Rule.
+// Hardcoded for the rules this extension generates, not arbitrary ones.
 class Rule {
     id;
     priority;
@@ -64,7 +62,6 @@ class Ruleset {
     resource;
     id;
     enabled;
-    path;
     json;
 
     constructor(resource) {
@@ -82,7 +79,7 @@ class Ruleset {
     }
 
     async disableRuleset() {
-        // Dont allow required rulesets to be disabled.
+        // Don't allow required rulesets to be disabled.
         if (this.isRequired())
             return false;
 
@@ -138,11 +135,9 @@ class Ruleset {
 
 // This class will manage rules, and handle translating them between different forms.
 export default class Rules {
-    #dynamicRules;
-    #sessionRules;
     #staticRulesets;
     #id;
-    #allRules;
+    #rules;
 
     // Map the defaultpolicy option slider (0-4) to the static rulesets that
     // should be enabled alongside the always-on `base`. Additive -- higher
@@ -164,44 +159,52 @@ export default class Rules {
     }
 
     async init() {
-        this.#dynamicRules   = await chrome.declarativeNetRequest.getDynamicRules();
-        this.#sessionRules   = await chrome.declarativeNetRequest.getSessionRules();
-        this.#allRules       = this.#dynamicRules.map(r => new Rule(r));
-        this.#allRules       = this.#allRules.concat(this.#sessionRules.map(r => new Rule(r, true)));
+        let dynamic = await chrome.declarativeNetRequest.getDynamicRules();
+        let session = await chrome.declarativeNetRequest.getSessionRules();
+
+        this.#rules = [
+            ...dynamic.map(r => new Rule(r)),
+            ...session.map(r => new Rule(r, true)),
+        ];
         this.#staticRulesets = [];
-        for (let r of this.#allRules) {
+        for (let r of this.#rules) {
             if (r.id > this.#id)
                 this.#id = r.id;
         }
 
-        // I think the only way to query disabled rulesets is to read them out of your manifest.
+        // Chrome's API doesn't list disabled rulesets, so enumerate them from the manifest.
         chrome.runtime
               .getManifest()
               .declarative_net_request
               .rule_resources
               .forEach(r => this.#staticRulesets.push(new Ruleset(r)));
 
-        // Make sure the enabled flags get set if available.
-        for (let i = 0; i < this.#staticRulesets.length; i++) {
-            await this.#staticRulesets[i].isEnabled();
-            //console.log("rules", "rulesets", this.#staticRulesets[i], this.#staticRulesets[i].enabled);
-        }
+        for (let ruleset of this.#staticRulesets)
+            await ruleset.isEnabled();
     }
 
-    // Internal, choose the next available id
     #getNextId() {
         return ++this.#id;
     }
 
-    // Get an empty template rule, only default policy.
+    #findSessionForHost(hostName) {
+        return this.#rules.find(r =>  r.isSession && r.host == hostName);
+    }
+
+    #findDynamicForHost(hostName) {
+        return this.#rules.find(r => !r.isSession && r.host == hostName);
+    }
+
+    #removeRule(id) {
+        this.#rules = this.#rules.filter(r => r.id != id);
+    }
+
+    // Empty template rule seeded with the active default ruleset's policy.
     async getEmptyRule(hostName) {
         let rule = new Rule();
         let policy = new Policy();
-
-        // Try to guess what the current default policy is.
         let defaultRule = this.#staticRulesets.find(r => r.enabled && !r.isRequired());
 
-        // Try to load that rule to see what it does.
         if (defaultRule)
             policy = await defaultRule.toPolicy();
 
@@ -214,41 +217,40 @@ export default class Rules {
         return rule;
     }
 
-    // Take a Policy() and Make it a session rule
+    // Install rulePolicy as a session rule for hostName, replacing any prior
+    // session. Any existing dynamic stays put; the session's priority is
+    // bumped above it so the session wins at runtime, and Abandon can then
+    // delete the session to restore the dynamic.
     async addSessionRule(hostName, rulePolicy) {
         let rule = await this.getEmptyRule(hostName);
-        let oldRule = this.getHostRule(hostName);
-        let removeId = [];
+        let oldSession = this.#findSessionForHost(hostName);
+        let oldDynamic = this.#findDynamicForHost(hostName);
 
-        // We set a web_accessible_resource here to prevent spamming the console
-        // with failed attempts to report errors.
+        // Point report-uri at our extension's WAR so report POSTs succeed locally
+        // instead of logging ERR_BLOCKED_BY_CLIENT against the placeholder URL.
         rulePolicy.directives["report-uri"] = [chrome.runtime.getURL("csp-report")];
 
         rule.fromPolicy(rulePolicy);
-
-        if (oldRule) {
-            removeId.push(oldRule.id);
-            // Only session rules are actually deleted by updateSessionRules
-            // below -- a dynamic oldRule.id is silently ignored, so the mirror
-            // must mirror that asymmetry.
-            if (oldRule.isSession) {
-                this.#sessionRules = this.#sessionRules.filter(r => r.id != oldRule.id);
-                this.#allRules    = this.#allRules.filter(r => r.id != oldRule.id);
-            }
-        }
-
-        // We're about to install this via updateSessionRules, so mark it as
-        // a session rule in the mirror -- otherwise a follow-up addSessionRule
-        // would treat oldRule as dynamic, skip the mirror cleanup, and leak
-        // orphan rule ids on every toggle.
         rule.isSession = true;
-        this.#sessionRules.push(rule.toRule());
-        this.#allRules.push(rule);
+        if (oldDynamic)
+            rule.priority = oldDynamic.priority + 1;
+
+        if (oldSession)
+            this.#removeRule(oldSession.id);
+
+        this.#rules.push(rule);
 
         await chrome.declarativeNetRequest.updateSessionRules({
-            removeRuleIds: removeId,
+            removeRuleIds: oldSession ? [oldSession.id] : [],
             addRules: [ rule.toRule() ],
         });
+    }
+
+    // Delete the session rule for hostName (if any); any dynamic rule stays put.
+    async abandonSessionRulesForHost(hostName) {
+        let rule = this.#findSessionForHost(hostName);
+        if (rule)
+            await this.delSessionRule(rule);
     }
 
     async delSessionRule(rule) {
@@ -256,8 +258,7 @@ export default class Rules {
             removeRuleIds: [rule.id],
             addRules: []
         });
-        this.#sessionRules = this.#sessionRules.filter(r => r.id != rule.id);
-        this.#allRules = this.#allRules.filter(r => r.id != rule.id);
+        this.#removeRule(rule.id);
     }
 
     async delDynamicRule(rule) {
@@ -265,13 +266,12 @@ export default class Rules {
             removeRuleIds: [rule.id],
             addRules: []
         });
-        this.#dynamicRules = this.#dynamicRules.filter(r => r.id != rule.id);
-        this.#allRules = this.#allRules.filter(r => r.id != rule.id);
+        this.#removeRule(rule.id);
     }
 
-    // Remove every session and dynamic rule, in two batched updateRules
-    // calls. Queries Chrome directly so it doesn't depend on init() having
-    // primed the mirror first. Static rulesets are not touched.
+    // Wipe every session and dynamic rule (two batched API calls). Queries
+    // Chrome directly so it doesn't need a fresh init(). Static rulesets
+    // are left alone.
     async resetAllRules() {
         let session = await chrome.declarativeNetRequest.getSessionRules();
         let dynamic = await chrome.declarativeNetRequest.getDynamicRules();
@@ -285,14 +285,12 @@ export default class Rules {
             addRules: [],
         });
 
-        this.#sessionRules = [];
-        this.#dynamicRules = [];
-        this.#allRules = [];
+        this.#rules = [];
     }
 
     // Remove every session and dynamic rule for this host.
     async resetHostRules(hostName) {
-        let matches = this.#allRules.filter(r => r.host == hostName);
+        let matches = this.#rules.filter(r => r.host == hostName);
         for (let rule of matches) {
             if (rule.isSession)
                 await this.delSessionRule(rule);
@@ -301,58 +299,44 @@ export default class Rules {
         }
     }
 
-    // The session rule for matching host becomes a dynamic rule
+    // Promote the host's session rule into a dynamic rule, replacing any
+    // existing dynamic. Priority is demoted back to the prior dynamic's
+    // level so commits don't drift priorities upward.
     async commitSessionRulesForHost(hostName) {
-        let rule = this.#allRules.find(r => r.isSession && r.host == hostName);
+        let rule = this.#findSessionForHost(hostName);
+        let prev = this.#findDynamicForHost(hostName);
         if (!rule)
             return;
+        if (prev)
+            rule.priority = prev.priority;
         await chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: [],
+            removeRuleIds: prev ? [prev.id] : [],
             addRules: [rule.toRule()],
         });
         await chrome.declarativeNetRequest.updateSessionRules({
             removeRuleIds: [rule.id],
             addRules: [],
         });
-        // Move the rule from session to dynamic in our mirror so subsequent
-        // reads agree with Chrome.
         rule.isSession = false;
-        this.#sessionRules = this.#sessionRules.filter(r => r.id != rule.id);
-        this.#dynamicRules.push(rule.toRule());
+        if (prev)
+            this.#removeRule(prev.id);
     }
 
-    // return the Policy() for matching host
+    // Rule for matching host, preferring session over dynamic.
     getHostRule(hostName) {
-        return this.#allRules.find(r => r.host == hostName);
+        return this.#findSessionForHost(hostName) ?? this.#findDynamicForHost(hostName);
     }
 
-    getAllDirectives() {
-        let keys = new Set();
-        this.#allRules.forEach(r => Object.keys(r.policy.directives).forEach(k => keys.add(k)));
-        return Array.from(keys);
-    }
-
-    getAllRules() {
-        return this.#allRules;
+    getRules() {
+        return this.#rules;
     }
 
     getAllStaticRules() {
         return this.#staticRulesets;
     }
 
-    enableStaticRuleset(id) {
-        let rule = this.#staticRulesets.find(r => r.id == id);
-        return rule.enableRuleset();
-    }
-
-    disableStaticRuleset(id) {
-        let rule = this.#staticRulesets.find(r => r.id == id);
-        return rule.disableRuleset();
-    }
-
-    // Enable exactly the named static rulesets (plus any required ones); every
-    // other non-required ruleset is disabled. Done in one API call so the
-    // change is atomic from Chrome's point of view.
+    // Enable exactly the named static rulesets (plus required ones); disable
+    // every other non-required ruleset. One batched API call, atomic.
     async setEnabledRulesets(ids) {
         let wanted = new Set(ids);
         let enableRulesetIds = [];

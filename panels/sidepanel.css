@@ -1,9 +1,13 @@
+:root {
+    color-scheme: light dark;
+}
+
 select {
     width: 100%;
 }
 
 table, th, td {
-    border: 1px solid black;
+    border: 1px solid currentColor;
     border-collapse: collapse
 }
 
@@ -34,18 +38,41 @@ td:has(input#sandbox-enabled:checked):after {
     content: "🔒"
 }
 
-table#sandbox:not(:has(input.sandbox:checked)) {
-    display: none
-}
-
 table#sandbox th {
     text-align: left
 }
 
 table#sandbox:not(:has(input#sandbox-enabled:checked)) tbody {
-    opacity: 0.5;
+    display: none;
 }
 
 body.hide-advanced :is(col, tr).advanced {
     visibility: collapse
+}
+
+body.standalone #panel {
+    display: none;
+}
+
+body.inert :is(button, table, textarea, #trustcontrol) {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* Hide the trust control when there are no groups to choose from. */
+div#trustcontrol:not(:has(option)) {
+    display: none;
+}
+
+/* Truncate long sources such as nonces and hashes. */
+table#sources tbody th {
+    max-width: 12ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Center the checkboxes */
+table td:has(input[type="checkbox"]) {
+    text-align: center;
 }

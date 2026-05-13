@@ -9,25 +9,26 @@
 <select id="panel"></select>
 <h1>Groups</h1>
 <p>
-<table id="groups">
-    <caption>Origin Groups</caption>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Origins</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-    </tbody>
-</table>
-</p>
-<p>
     <input type=text id=newname placeholder="Group name" />
-    <button id="add">Add Group</button>
+    <button id="addgroup">Add Group</button>
 </p>
-<p>
-    <button id="save">Save</button>
-</p>
+<hr>
+<div id="groups"></div>
+
+<template id="group-template">
+    <section class="group">
+        <h3 class="group-name"></h3>
+        <ul></ul>
+        <p>
+            <input type=text class="neworigin" placeholder="Origin">
+            <button class="addorigin">Add Origin</button>
+            <button class="delgroup">Delete Group</button>
+        </p>
+    </section>
+</template>
+
+<template id="origin-template">
+    <li><span class="origin-name"></span> <button class="delorigin">Remove</button></li>
+</template>
 </body>
 </html>

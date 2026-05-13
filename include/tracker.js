@@ -1,15 +1,9 @@
 import CspReport from '/include/cspreport.js'
 import * as psl from '/include/psl.js'
 
-// Imagine a document with an embedded youtube video, the toplevel document
-// will script src the youtube embedded script, which creates an iframe that
-// contains the video.
-// The user might allow this origin to load scripts and frames from youtube
-// but that doesn't imply that the frame will have permission to play media.
-// This will be confusing behaviour, because the user will have to navigate
-// to youtube, apply all the permissions, then reload the broken site.
-// Instead, we track subresource violations and populate the report form so
-// it can all be done on the same page.
+// Track sub-resource violations and surface them in the report panel, so
+// the user can grant per-host permissions without navigating to each blocked
+// origin and editing them one at a time.
 
 // The information we track about a tab
 class Tab {
@@ -48,10 +42,9 @@ export default class ViolationTracker {
             if (blocked === undefined)
                 console.log("tracker", "what is this", report.blocked);
         } else {
-            // Collapse subdomain origins to a wildcard at the user's chosen
-            // scope so they aren't drowning in per-host directives. In "host"
-            // scope getScopedDomain returns the hostname unchanged and the
-            // wildcard branch below becomes a no-op.
+            // Collapse subdomains to a wildcard at the user's chosen scope. In
+            // "host" scope getScopedDomain is a passthrough and the wildcard
+            // branch below is a no-op.
             const u = new URL(blocked);
             const scoped = await psl.getScopedDomain(u.hostname);
             let hostpart = scoped;
@@ -69,7 +62,7 @@ export default class ViolationTracker {
         tab.policy[domain][report.directive].add(blocked);
     }
 
-    // Called when the origin changes, throw away what we know.
+    // Called from webNavigation.onBeforeNavigate; drop everything we know about the tab.
     resetTab(tabId) {
         this.#tabs.delete(tabId);
     }

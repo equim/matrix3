@@ -1,29 +1,19 @@
-export async function getCurrentTabId()
-{
-    const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    return tabs[0];
-}
-
-export function getMapKey(map, val) {
-  return [...map].find(([key, value]) => val === value)[0];
-}
-
 export function clearTable(table) {
     table.tBodies[0]?.replaceChildren();
 }
 
-// Sort tbody rows alphabetically by the first cell's text content. Header
-// rows in <thead> are untouched.
-export function sortTable(table) {
-    let rows = Array.from(table.tBodies[0].rows);
-    rows.sort((a, b) => a.cells[0].textContent.localeCompare(b.cells[0].textContent));
-    for (let row of rows)
-        row.parentNode.appendChild(row);
+// Default comparator: alphabetical by the first cell's text content.
+function compareRowLabels(a, b) {
+    return a.cells[0].textContent.localeCompare(b.cells[0].textContent);
 }
 
-// Count the columns of a table by looking at its header row.
-export function countTableCols(table) {
-    return table.tHead.rows[0].cells.length;
+// Sort tbody rows by the given comparator (default: alphabetical by first
+// cell's text content). Header rows in <thead> are untouched.
+export function sortTable(table, compare = compareRowLabels) {
+    let rows = Array.from(table.tBodies[0].rows);
+    rows.sort(compare);
+    for (let row of rows)
+        row.parentNode.appendChild(row);
 }
 
 // Return a property from each header cell, e.g. ('id') for column IDs or
@@ -41,6 +31,12 @@ export function getTableRowProps(table, prop) {
 // Find the body row whose first-cell text matches `label`, or undefined.
 export function findTableRow(table, label) {
     return Array.from(table.tBodies[0].rows).find(r => r.cells[0].textContent === label);
+}
+
+// Set the checked state on every input in `list` (NodeList or any iterable).
+export function setCheckboxes(list, state) {
+    for (let box of list)
+        box.checked = state;
 }
 
 // Enforce single-checked semantics across a checkbox group. When `target`

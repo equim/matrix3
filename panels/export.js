@@ -5,10 +5,10 @@ const outputElement = document.getElementById("export");
 const loadElement = document.getElementById("import");
 
 async function buildExport() {
-    let allRules = RulesManager.getAllRules();
+    let rules = RulesManager.getRules();
     return {
-        session: allRules.filter(r => r.isSession).map(r => r.toRule()),
-        dynamic: allRules.filter(r => !r.isSession).map(r => r.toRule()),
+        session: rules.filter(r => r.isSession).map(r => r.toRule()),
+        dynamic: rules.filter(r => !r.isSession).map(r => r.toRule()),
         options: sidepanel.options,
         enabledRulesets: await chrome.declarativeNetRequest.getEnabledRulesets(),
     };

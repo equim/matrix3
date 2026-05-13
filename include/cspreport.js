@@ -1,12 +1,8 @@
 // Parser for intercepted csp_report requests.
 export default class CspReport {
-    #request;
-    #body;
     initiator;
     report;
     blockeduri;
-    docuri;
-    tabId;
 
     #decodeReportUri(uri) {
         if (uri === "null") {
@@ -26,18 +22,10 @@ export default class CspReport {
     }
 
     constructor(details) {
-        this.#request = details;
-
         // Decode what chrome is reporting.
-        this.#body = CspReport.#requestBodyDecode(this.#request.requestBody);
-        this.report = JSON.parse(this.#body);
-        this.tabId = details.tabId;
+        let body = CspReport.#requestBodyDecode(details.requestBody);
+        this.report = JSON.parse(body)["csp-report"];
         this.initiator = this.#decodeReportUri(details.initiator);
-
-        // We only care about this property.
-        this.report = this.report["csp-report"];
-
-        this.docuri = this.#decodeReportUri(this.report["document-uri"]);
 
         // This might be a URI, or might be a keyword like "inline".
         this.blockeduri = this.#decodeReportUri(this.report["blocked-uri"]);
@@ -46,8 +34,7 @@ export default class CspReport {
     }
 
     static #requestBodyDecode(body) {
-        // We only need one of these, so initialize it now. I think as this
-        // method is static, it will be shared between all callers.
+        // Shared TextDecoder across all callers of this static method.
         CspReport.#requestBodyDecode._textdec ??= new TextDecoder("utf-8");
         return body.raw.reduce((a, c) => CspReport.#requestBodyDecode._textdec.decode(c.bytes), "");
     }
@@ -58,10 +45,6 @@ export default class CspReport {
 
     get blocked() {
         return this.blockeduri;
-    }
-
-    isOutermost() {
-        return this.#request.frameType === "outermost_frame";
     }
 
     // CSP report's "blocked-uri" can be a real URL or a pseudo-scheme used

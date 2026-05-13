@@ -1,4 +1,3 @@
-import * as utils from '/include/utils.js'
 import * as sidepanel from '/include/sidepanel.js'
 
 const optionElements = document.querySelectorAll(".option");

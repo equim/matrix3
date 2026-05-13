@@ -1,10 +1,14 @@
 import Rules from '/include/rules.js'
 
-export let current = await chrome.windows.getCurrent();
+let current = await chrome.windows.getCurrent();
 export let { options } = await chrome.storage.sync.get("options");
 
 const panel = document.getElementById("panel");
 const { path } = await chrome.sidePanel.getOptions({});
+
+// chrome.tabs.getCurrent() is undefined in side-panel/popup contexts.
+if (await chrome.tabs.getCurrent())
+    document.body.classList.add("standalone");
 
 export let RulesManager = new Rules();
 
@@ -41,8 +45,7 @@ export async function getActiveTab()
     return tab;
 }
 
-// Any settings that need extra work to be applied, most should be just checked
-// when required.
+// Apply persistent option changes (advanced-class toggle, default policy).
 export async function applyOptions()
 {
     await RulesManager.init();

@@ -7,10 +7,8 @@ import { MessageTypes } from '/include/commands.js'
 let tracker = new ViolationTracker();
 let server = new RequestServer(tracker);
 
-// Apply stored options at browser-start / install. Until this runs the
-// manifest defaults are in effect, which doesn't match the user's saved
-// defaultpolicy slider -- fixes the "options only apply after opening the
-// sidepanel" gap.
+// Apply stored options on browser-start / install -- otherwise the saved
+// defaultpolicy slider doesn't take effect until the sidepanel opens.
 async function applyStoredOptions() {
     let { options } = await chrome.storage.sync.get("options");
     let rules;
@@ -22,6 +20,20 @@ async function applyStoredOptions() {
 }
 chrome.runtime.onStartup.addListener(() => applyStoredOptions());
 chrome.runtime.onInstalled.addListener(() => applyStoredOptions());
+
+// Set a badge on the toolbar icon for the given tab. Skipped when the
+// `badges` option is off so users can opt out of the visual clutter.
+async function setBadge(tabId, text, color) {
+    let { options } = await chrome.storage.sync.get("options");
+    if (!options?.badges)
+        return;
+    chrome.action.setBadgeText({ text, tabId });
+    chrome.action.setBadgeBackgroundColor({ color, tabId });
+}
+
+function clearBadge(tabId) {
+    chrome.action.setBadgeText({ text: '', tabId });
+}
 
 // Track what security policy hosts request, and make it available to users.
 chrome.webRequest.onHeadersReceived.addListener(async (details) => {
@@ -43,6 +55,7 @@ chrome.webRequest.onHeadersReceived.addListener(async (details) => {
 // Monitor for CSP violation reports.
 chrome.webRequest.onBeforeRequest.addListener(async (details) => {
         await tracker.addTabViolation(details.tabId, new CspReport(details));
+        setBadge(details.tabId, "!", "#dc2626");
         chrome.runtime.sendMessage({
             command: MessageTypes.NOTIFY_UPDATE,
                data: { id: details.tabId }
@@ -58,8 +71,10 @@ chrome.sidePanel.setPanelBehavior({openPanelOnActionClick: true }).catch((error)
 
 // Reset before the request so the CSP captured by onHeadersReceived survives.
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-    if (details.frameId === 0)
-        tracker.resetTab(details.tabId);
+    if (details.frameId !== 0)
+        return;
+    tracker.resetTab(details.tabId);
+    clearBadge(details.tabId);
 });
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     console.log("service", "onremoved", tabId, removeInfo);
