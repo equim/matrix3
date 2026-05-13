@@ -9,6 +9,7 @@ import * as psl from '/include/psl.js'
 class Tab {
     server = {};
     policy = {};
+    documents = new Set();
 }
 
 // This class keeps track of observed violations so we can give the user hints.
@@ -67,6 +68,17 @@ export default class ViolationTracker {
         this.#tabs.delete(tabId);
     }
 
+    // Track which documentIds are currently live for the tab so we can drop
+    // csp_reports from documents that no longer exist (e.g. POSTs in flight
+    // from the previous page that arrive after a reload).
+    addDocument(tabId, documentId) {
+        this.#getOrCreateTab(tabId).documents.add(documentId);
+    }
+
+    hasDocument(tabId, documentId) {
+        return this.#tabs.get(tabId)?.documents.has(documentId) ?? false;
+    }
+
     async addServerPolicy(tabId, url, header) {
         let tab = this.#getOrCreateTab(tabId);
         let domain = await psl.getScopedDomain(new URL(url).hostname);
@@ -75,13 +87,13 @@ export default class ViolationTracker {
     }
 
     getServerPolicy(tabId, domain) {
-        let tab = this.#getOrCreateTab(tabId);
-        return Array.from(tab.server[domain] ?? []);
+        let tab = this.#tabs.get(tabId);
+        return Array.from(tab?.server[domain] ?? []);
     }
 
     getDirectives(tabId, domain) {
-        let tab = this.#getOrCreateTab(tabId);
-        let bucket = tab.policy[domain] ?? {};
+        let tab = this.#tabs.get(tabId);
+        let bucket = tab?.policy[domain] ?? {};
 
         return Object.fromEntries(
             Object.entries(bucket).map(([key, value]) => [key, Array.from(value)])

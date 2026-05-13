@@ -299,6 +299,25 @@ export default class Rules {
         }
     }
 
+    // Demote the host's dynamic rule into a session rule (inverse of Commit).
+    // No-op if there's no dynamic rule, or if a session rule already exists
+    // for this host -- the user should commit or abandon that first.
+    async uncommitDynamicRulesForHost(hostName) {
+        let rule = this.#findDynamicForHost(hostName);
+        let session = this.#findSessionForHost(hostName);
+        if (!rule || session)
+            return;
+        await chrome.declarativeNetRequest.updateSessionRules({
+            removeRuleIds: [],
+            addRules: [rule.toRule()],
+        });
+        await chrome.declarativeNetRequest.updateDynamicRules({
+            removeRuleIds: [rule.id],
+            addRules: [],
+        });
+        rule.isSession = true;
+    }
+
     // Promote the host's session rule into a dynamic rule, replacing any
     // existing dynamic. Priority is demoted back to the prior dynamic's
     // level so commits don't drift priorities upward.

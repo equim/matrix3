@@ -39,6 +39,8 @@ function clearBadge(tabId) {
 chrome.webRequest.onHeadersReceived.addListener(async (details) => {
         let csp = details.responseHeaders.filter(hdr => hdr.name.toLowerCase() == "content-security-policy");
 
+        console.log("hdr", details.tabId, details.documentLifecycle, details.frameType, details.url);
+
         for (let hdr of csp)
             await tracker.addServerPolicy(details.tabId, details.url, hdr.value);
         if (csp.length)
@@ -54,6 +56,10 @@ chrome.webRequest.onHeadersReceived.addListener(async (details) => {
 
 // Monitor for CSP violation reports.
 chrome.webRequest.onBeforeRequest.addListener(async (details) => {
+        // Drop reports from documents that no longer exist -- POSTs from the
+        // previous page can still be in flight when the user reloads.
+        if (!tracker.hasDocument(details.tabId, details.documentId))
+            return;
         await tracker.addTabViolation(details.tabId, new CspReport(details));
         setBadge(details.tabId, "!", "#dc2626");
         chrome.runtime.sendMessage({
@@ -65,6 +71,12 @@ chrome.webRequest.onBeforeRequest.addListener(async (details) => {
          urls: [ "<all_urls>" ]
     }, [ "requestBody" ]
 );
+
+// Record each frame's documentId at commit time. resetTab clears them
+// alongside everything else, so a top-frame navigation wipes the whole tree.
+chrome.webNavigation.onCommitted.addListener((details) => {
+    tracker.addDocument(details.tabId, details.documentId);
+});
 
 // Make the matrix button open the sidepanel.
 chrome.sidePanel.setPanelBehavior({openPanelOnActionClick: true }).catch((error) => console.error(error));

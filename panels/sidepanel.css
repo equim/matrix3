@@ -42,6 +42,11 @@ table#sandbox th {
     text-align: left
 }
 
+table#sandbox tbody th {
+    padding-left: 1.5em;
+    font-weight: normal;
+}
+
 table#sandbox:not(:has(input#sandbox-enabled:checked)) tbody {
     display: none;
 }
@@ -75,4 +80,8 @@ table#sources tbody th {
 /* Center the checkboxes */
 table td:has(input[type="checkbox"]) {
     text-align: center;
+}
+
+div#serverpolicy:has(button:disabled) {
+    display: none;
 }

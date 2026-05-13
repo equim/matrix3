@@ -34,13 +34,16 @@ persists across browser restarts.
 </p>
 <p>
 If you change your mind about an edit, click <b>Abandon</b> to discard the
-session rule and restore the previously committed dynamic rule. <b>Reset</b>
-removes every rule for the host -- session and dynamic both.
+session rule and restore the previously committed dynamic rule. To go the
+other way -- make a persistent rule temporary again -- click <b>Uncommit</b>,
+which demotes the dynamic rule back to a session rule (so it disappears when
+you close the browser). <b>Reset</b> removes every rule for the host --
+session and dynamic both.
 </p>
 <h3>Violations</h3>
 <p>
 When a page action is blocked by the active policy, matrix³ records the source
-and the hilights the relevant checkbox. Click <b>Unblock</b> to allow every
+and highlights the relevant checkbox. Click <b>Unblock</b> to allow every
 reported source at once instead of ticking them one by one.
 </p>
 <h3>Server Suggested Policy</h3>

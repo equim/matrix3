@@ -13,6 +13,10 @@ const headerList = document.querySelector("textarea#servercsp")
 
 let currentServerPolicies = [];
 
+// User's last manual origin selection. Sticks across reloads even if a partial
+// frame list temporarily falls back to the top domain; cleared on tab switch.
+let userOrigin;
+
 // Recognises the prefix of a CSP nonce-source or hash-source value.
 const kNonceOrHashPrefix = /^'(?:nonce-|sha(?:256|384|512)-)/;
 
@@ -32,6 +36,10 @@ document.getElementById('reload').addEventListener("click", async () => {
 });
 document.getElementById('abandon').addEventListener("click", async () => {
     await RulesManager.abandonSessionRulesForHost(originList.value);
+    updateReport();
+});
+document.getElementById('uncommit').addEventListener("click", async () => {
+    await RulesManager.uncommitDynamicRulesForHost(originList.value);
     updateReport();
 });
 document.getElementById('unblock').addEventListener("click", () => unblockReportedViolations());
@@ -133,6 +141,7 @@ document.getElementById('trust').addEventListener("click", () => applyTrustGroup
 document.getElementById('untrust').addEventListener("click", () => applyTrustGroup(false));
 
 originList.addEventListener("change", () => {
+    userOrigin = originList.value;
     refreshTable(originList.value);
     populateServerPolicy();
     updateOriginScopeState();
@@ -500,6 +509,7 @@ async function refreshViolations(domain) {
 
     setCurrentViolations(violations);
     utils.sortTable(directivesTable, compareSourceRows);
+    updateButtonStates();
 }
 
 // Allowlist http(s) only; everything else (chrome:, about:, devtools:, etc.)
@@ -515,13 +525,17 @@ function updateOriginScopeState() {
 }
 
 // Commit and Abandon only make sense when there's a session rule for the
-// host -- otherwise there's nothing to promote or discard.
+// host -- otherwise there's nothing to promote or discard. Uncommit is the
+// inverse: a dynamic rule with no session draft in the way.
 function updateButtonStates() {
-    let rule = RulesManager.getHostRule(originList.value);
-    let hasSession = rule?.isSession === true;
+    let host = originList.value;
+    let rules = RulesManager.getRules().filter(r => r.host === host);
+    let hasSession = rules.some(r => r.isSession);
+    let hasDynamic = rules.some(r => !r.isSession);
     let hasViolations = directivesTable.querySelector("input.violation") !== null;
     document.getElementById('commit').disabled = !hasSession;
     document.getElementById('abandon').disabled = !hasSession;
+    document.getElementById('uncommit').disabled = !hasDynamic || hasSession;
     document.getElementById('unblock').disabled = !hasViolations;
 }
 
@@ -548,16 +562,17 @@ function populateTrustGroups() {
 }
 
 async function updateReport() {
-    let prev = originList.value;
-
-    await populateOriginList(prev);
+    await populateOriginList(userOrigin ?? originList.value);
     await refreshTable(originList.value);
     populateServerPolicy();
     updateOriginScopeState();
 }
 
 chrome.webNavigation.onCommitted.addListener(() => updateReport());
-chrome.tabs.onActivated.addListener(() => updateReport());
+chrome.tabs.onActivated.addListener(() => {
+    userOrigin = undefined;
+    updateReport();
+});
 chrome.runtime.onMessage.addListener((msg) => {
     switch (msg.command) {
         case MessageTypes.NOTIFY_UPDATE:
