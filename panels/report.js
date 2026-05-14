@@ -20,9 +20,6 @@ let userOrigin;
 // Recognises the prefix of a CSP nonce-source or hash-source value.
 const kNonceOrHashPrefix = /^'(?:nonce-|sha(?:256|384|512)-)/;
 
-// TODO: after commit/reset the loaded page is still running under the
-// previous CSP (headers are set per-response); we should prompt the user
-// to reload so the new state takes effect.
 document.getElementById('commit').addEventListener("click", async () => {
     await RulesManager.commitSessionRulesForHost(originList.value);
     updateReport();
@@ -541,6 +538,7 @@ function updateButtonStates() {
     document.getElementById('abandon').disabled = !hasSession;
     document.getElementById('uncommit').disabled = !hasDynamic || hasSession;
     document.getElementById('unblock').disabled = !hasViolations;
+    document.getElementById('reset').disabled = !hasSession && !hasDynamic;
 }
 
 async function refreshTable(domain) {
