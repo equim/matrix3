@@ -36,7 +36,12 @@ export default class CspReport {
     static #requestBodyDecode(body) {
         // Shared TextDecoder across all callers of this static method.
         CspReport.#requestBodyDecode._textdec ??= new TextDecoder("utf-8");
-        return body.raw.reduce((a, c) => CspReport.#requestBodyDecode._textdec.decode(c.bytes), "");
+        const decoder = CspReport.#requestBodyDecode._textdec;
+        let json = "";
+        for (const {bytes} of body.raw ?? []) {
+            if (bytes) json += decoder.decode(bytes, { stream: true });
+        }
+        return json + decoder.decode();
     }
 
     get directive() {
