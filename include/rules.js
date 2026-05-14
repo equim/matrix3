@@ -1,8 +1,6 @@
 import Policy from '/include/policy.js'
 
-// A single declarativeNetRequest rule (session or dynamic; isSession
-// distinguishes). Static rulesets are handled by Ruleset, not Rule.
-// Hardcoded for the rules this extension generates, not arbitrary ones.
+// A declarativeNetRequest rule (session or dynamic).
 class Rule {
     id;
     priority;
@@ -170,6 +168,8 @@ export default class Rules {
             ...session.map(r => new Rule(r, true)),
         ];
         this.#staticRulesets = [];
+
+        // Track the highest ID in use to avoid collisions.
         for (let r of this.#rules) {
             if (r.id > this.#id)
                 this.#id = r.id;
@@ -182,8 +182,13 @@ export default class Rules {
               .rule_resources
               .forEach(r => this.#staticRulesets.push(new Ruleset(r)));
 
-        for (let ruleset of this.#staticRulesets)
+        for (let ruleset of this.#staticRulesets) {
+            // Sync current state and probe internal rule IDs.
             await ruleset.isEnabled();
+            await ruleset.toPolicy();
+            if (ruleset.json?.id > this.#id)
+                this.#id = ruleset.json.id;
+        }
     }
 
     #getNextId() {
