@@ -92,7 +92,7 @@ class Ruleset {
 
     async isEnabled() {
         let rulesets = await chrome.declarativeNetRequest.getEnabledRulesets();
-        this.enabled = await rulesets.includes(this.id);
+        this.enabled = rulesets.includes(this.id);
         return this.enabled;
     }
 
