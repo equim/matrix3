@@ -27,6 +27,13 @@ if (typeof options === "undefined") {
     await chrome.storage.sync.set({ options: options });
 }
 
+chrome.storage.onChanged.addListener((changes) => {
+    if (changes.options) {
+        options = changes.options.newValue;
+        applyOptions();
+    }
+});
+
 for (let page in sidepanelPages) {
     let opt = document.createElement("option");
     opt.innerText = page;
