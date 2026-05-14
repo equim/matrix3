@@ -393,8 +393,9 @@ async function setCurrentRules(hostName)
         }
     }
 
-    // Reset before write -- see NOTES.md "Inherited directives in setCurrentRules".
-    delete policy.directives["default-src"];
+    // Reset before write.
+    for (let dir of dirs)
+        delete policy.directives[dir];
 
     for (let dir of dirs) {
         for (let src of srcs) {

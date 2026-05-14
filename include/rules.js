@@ -101,6 +101,9 @@ class Ruleset {
     }
 
     async #load() {
+        if (this.json)
+            return true;
+
         try {
             const response = await fetch(this.url);
 
@@ -203,10 +206,25 @@ export default class Rules {
     async getEmptyRule(hostName) {
         let rule = new Rule();
         let policy = new Policy();
-        let defaultRule = this.#staticRulesets.find(r => r.enabled && !r.isRequired());
+        let enabledRulesets = this.#staticRulesets.filter(r => r.enabled && !r.isRequired());
 
-        if (defaultRule)
-            policy = await defaultRule.toPolicy();
+        for (let ruleset of enabledRulesets) {
+             const p = await ruleset.toPolicy();
+             for (const [dir, sources] of Object.entries(p.directives)) {
+                 let isRedundant = true;
+
+                 if (isRedundant && dir !== "default-src")
+                     isRedundant = false;
+                 if (isRedundant && sources[0] !== "'none'")
+                     isRedundant = false;
+                 if (isRedundant && policy.directives[dir]?.[0] !== "'none'")
+                     isRedundant = false;
+
+                 if (!isRedundant) {
+                     policy.directives[dir] = [...sources];
+                 }
+             }
+        }
 
         rule.id = this.#getNextId();
         rule.priority = 2;
