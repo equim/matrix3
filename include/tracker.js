@@ -5,14 +5,13 @@ import * as psl from '/include/psl.js'
 // the user can grant per-host permissions without navigating to each blocked
 // origin and editing them one at a time.
 
-// The information we track about a tab
+// Tab violation and policy tracking.
 class Tab {
     server = {};
     policy = {};
     documents = new Set();
 }
 
-// This class keeps track of observed violations so we can give the user hints.
 export default class ViolationTracker {
     #tabs;
 
@@ -30,15 +29,25 @@ export default class ViolationTracker {
     async addTabViolation(tabId, report) {
         let tab = this.#getOrCreateTab(tabId);
         let blocked = report.blocked?.origin;
-        let origin = report.initiator?.origin;
 
-        if (!report.initiator || !report.blocked)
+        if (!report.blocked)
             return false;
+
+        let docUrl;
+        try {
+            docUrl = new URL(report.report["document-uri"]);
+        } catch (e) {
+            return false;
+        }
+
+        let origin = docUrl.origin;
 
         // Normalize some sources
         if (blocked == origin) {
             blocked = "'self'";
         } else if (blocked == "null") {
+            // Opaque origins (inline, eval, data, blob, etc) have origin "null".
+            // Map them back to their CSP source keywords using the protocol.
             blocked = CspReport.protocolSource(report.blocked.protocol);
             if (blocked === undefined) {
                 console.log("tracker", "unknown blocked pseudo-scheme", report.blocked);
@@ -56,9 +65,9 @@ export default class ViolationTracker {
             blocked = `${u.protocol}//${hostpart}`;
         }
 
-        // Bucket by the initiator at the user's chosen scope so the panel
-        // can find it with the same key it puts in the dropdown.
-        let domain = await psl.getScopedDomain(new URL(origin).hostname);
+        // Bucket by the document's scope so the panel can find it with the
+        // same key it puts in the dropdown.
+        let domain = await psl.getScopedDomain(docUrl.hostname);
 
         tab.policy[domain] ??= {};
         tab.policy[domain][report.directive] ??= new Set();
@@ -71,11 +80,28 @@ export default class ViolationTracker {
         this.#tabs.delete(tabId);
     }
 
+    resetViolations(tabId) {
+        let tab = this.#tabs.get(tabId);
+        if (tab) {
+            tab.policy = {};
+            tab.documents.clear();
+        }
+    }
+
+    resetServerPolicy(tabId) {
+        let tab = this.#tabs.get(tabId);
+        if (tab) tab.server = {};
+    }
+
     // Track which documentIds are currently live for the tab so we can drop
     // csp_reports from documents that no longer exist (e.g. POSTs in flight
     // from the previous page that arrive after a reload).
     addDocument(tabId, documentId) {
         this.#getOrCreateTab(tabId).documents.add(documentId);
+    }
+
+    removeDocument(tabId, documentId) {
+        this.#tabs.get(tabId)?.documents.delete(documentId);
     }
 
     hasDocument(tabId, documentId) {
