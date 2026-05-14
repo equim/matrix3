@@ -5,11 +5,13 @@ export default class CspReport {
     blockeduri;
 
     #decodeReportUri(uri) {
-        if (uri === "null") {
-            // Sandboxed contexts, form resubmits, anonymous requests.
-            console.log("cspreport", "null uri, skipping");
+        if (uri === "null")
             return null;
-        }
+
+        // CSP keywords like 'inline' or 'eval' won't parse as URLs without a 
+        // scheme. Prepending a colon makes them valid opaque URLs (e.g. 'eval:'),
+        // which lets the URL constructor succeed and preserves the keyword in 
+        // the .protocol property for later normalization in ViolationTracker.
         if (CspReport.protocolSource(uri + ":") !== undefined)
             uri += ":";
 

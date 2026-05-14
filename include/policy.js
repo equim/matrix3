@@ -2,7 +2,6 @@
 
 // The default blank policy you get from new Policy()
 const defaultPolicy = {
-    "default-src": [ "'none'" ],
     "report-uri": [ "https://_matrix3.internal/csp-report" ],
 };
 
