@@ -41,9 +41,13 @@ chrome.webRequest.onHeadersReceived.addListener(async (details) => {
 
         console.log("hdr", details.tabId, details.documentLifecycle, details.frameType, details.url);
 
+        if (details.frameId === 0)
+            tracker.resetServerPolicy(details.tabId);
+
         for (let hdr of csp)
             await tracker.addServerPolicy(details.tabId, details.url, hdr.value);
-        if (csp.length)
+
+        if (details.frameId === 0 || csp.length)
             chrome.runtime.sendMessage({
                 command: MessageTypes.NOTIFY_UPDATE,
                    data: { id: details.tabId }
@@ -84,9 +88,15 @@ chrome.sidePanel.setPanelBehavior({openPanelOnActionClick: true }).catch((error)
 
 // Reset before the request so the CSP captured by onHeadersReceived survives.
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-    if (details.frameId !== 0)
+    if (details.frameId !== 0) {
+        // Subframe navigated away; drop its old documentId. Note: this doesn't
+        // catch iframes removed from the DOM entirely, but prevents unbounded
+        // growth from auto-reloading iframes.
+        if (details.documentId)
+            tracker.removeDocument(details.tabId, details.documentId);
         return;
-    tracker.resetTab(details.tabId);
+    }
+    tracker.resetViolations(details.tabId);
     clearBadge(details.tabId);
 });
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
