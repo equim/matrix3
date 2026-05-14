@@ -42,6 +42,8 @@ async function updateRuleTables() {
         row.insertCell(-1).appendChild(chk);
         row.insertCell(-1).innerText = ruleset.id;
     }
+
+    document.getElementById('reset').disabled = rules.length === 0;
 }
 
 document.getElementById('apply').addEventListener("click", async () => {
