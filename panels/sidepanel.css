@@ -28,9 +28,12 @@ table {
 }
 
 textarea {
+    field-sizing: content;
     width: 100%;
-    height: -webkit-fill-available;
     font-family: monospace;
+    line-height: 1.5;
+    min-height: -webkit-fill-available;
+    max-height: calc(18 * 1.5em);
 }
 
 td:has(input.sandbox:not(:checked)):after {
@@ -59,11 +62,15 @@ table#sandbox tbody th {
     white-space: nowrap;
 }
 
-table#sources tbody th {
-    max-width: 12ch;
+table#sources th {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+table#sources tbody th {
+    max-width: 20ch;
+    font-family: monospace;
 }
 
 /* hilight active column */
