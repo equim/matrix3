@@ -294,7 +294,7 @@ function fallbackToNone() {
     col = utils.getTableColProps(directivesTable, "id").indexOf("default-src");
     boxes = Array.from(directivesTable.tBodies[0].rows, r => r.cells[col].firstChild);
     if (!boxes.some(b => b.checked))
-        findCheckbox("'none'", "default-src", true).checked = true;
+        findCheckbox("'self'", "default-src", true).checked = true;
 }
 
 // Sort sources alphabetically, but with nonce-* / sha*-* values at the end
@@ -510,7 +510,8 @@ async function refreshViolations(domain) {
     let tab = await sidepanel.getActiveTab();
 
     if (!domain || !tab) {
-        console.warn("report", "refresh requested with unknown domain or tab", domain, tab);
+        // This can happen with multiple windows or devtools.
+        console.debug("report", "refresh requested with unknown domain or tab", domain, tab);
         return;
     }
 
