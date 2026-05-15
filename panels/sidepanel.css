@@ -114,6 +114,11 @@ body.show-advanced :is(col, tr).advanced {
     visibility: visible;
 }
 
+#panel {
+    position: sticky;
+    top: 0;
+}
+
 body.standalone #panel {
     display: none;
 }
