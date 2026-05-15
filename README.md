@@ -1,9 +1,9 @@
 # matrix³
 
-This is matrix³, an experimental minimalist mv3 content policy manager.
+This is matrix³, an experimental mv3 content policy manager.
 
 This extension is inspired by [uMatrix](https://github.com/gorhill/uMatrix),
-but built on `declarativeNetRequest` for modern browsers.
+but built on `declarativeNetRequest`.
 
 It looks like this -- it adds a sidepanel that lets you enable or disable web
 features.
@@ -19,18 +19,20 @@ familiarity with the CSP3 specification is recommended.
 
 1. Clone or download this repository.
 2. Open `chrome://extensions`.
-3. Enable **Developer mode**, and click **Load unpacked**.
+3. Enable **Developer mode**, and click **Load Unpacked**.
 
 ## Usage
 
 Open the sidepanel via the matrix³ toolbar icon. If this is your first time
 using the extension, choose a default policy in the **Options** page.
 
-If a site isn't working, click the toolbar icon and open the **Report** page.
+If a site doesn't work, click the toolbar icon and open the **Report** page.
+If you're using `sandbox`, try disabling it and see what resources the site
+requests.
 
-A *violation* is a subresource the page requested that was denied, these are
-highlighted in orange. You can enable options until the site works, then click
-**Reload** to reload the tab.
+Any subresource the page requested that was denied is highlighted in orange.
+You can enable options until the site works, then click **Reload** to reload
+the tab.
 
 When you're happy with the settings, click **Commit** to make them persistent.
 
