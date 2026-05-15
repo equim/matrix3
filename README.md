@@ -55,14 +55,13 @@ site, you need to adjust it in the **Report** tab.
 
 ### First Party
 
-First-party scripts, styles, and other resources are generally allowed,
-including `'unsafe-inline'` for scripts and styles. Third-party resources are
-blocked unless you give them permission in the **Report** tab.
+First-party scripts, styles, and other resources are generally allowed.
+Third-party resources are blocked unless you give them permission in the **Report** tab.
 
 ### Sandbox
 
 The `sandbox` attribute is applied to every document by default -- no scripts,
-forms, popups, downloads or top navigation. Add specific `allow-*` exceptions
+forms, popups, downloads or top navigation. Add specific exceptions
 in the **Sandbox** section of the **Report** tab if you need them.
 
 If you want to disable the sandbox attribute for a site, you can disable it
@@ -100,4 +99,7 @@ embed hosts.
 Define groups in the **Groups** page. Then in the **Report** page, pick a
 group from the dropdown and click **Trust** to allow all of its origins for
 the current host at once. **Untrust** removes them.
+
+The **Ignore** group allows you to hide origins from the **Report** page that
+you're not interested in.
 
