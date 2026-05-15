@@ -4,6 +4,8 @@ import RequestServer from '/server.js'
 import Rules from '/include/rules.js'
 import { MessageTypes } from '/include/commands.js'
 
+// Tracker state is in-memory; MV3 unloads the service worker after ~30s idle
+// and the captured CSP/violations vanish. Reload the tab to recapture.
 let tracker = new ViolationTracker();
 let server = new RequestServer(tracker);
 
