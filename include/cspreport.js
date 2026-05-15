@@ -36,7 +36,7 @@ export default class CspReport {
         // This might also be a URI, or might be a keyword like "inline".
         this.blockeduri = this.#decodeReportUri(this.report["blocked-uri"]);
 
-        console.log("cspreport", "blocked", this.blocked, "for", this.directive, this);
+        console.debug("cspreport", "blocked", this.blocked, "for", this.directive, this);
     }
 
     static #requestBodyDecode(body) {

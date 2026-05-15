@@ -243,11 +243,15 @@ function findCheckbox(source, directive, autoAdd)
     let colNum = cols.indexOf(directive);
 
     if (!row && autoAdd) {
-        console.log("report", `source name ${source} is unknown, adding`);
+        console.debug("report", `source name ${source} is unknown, adding`);
         row = addSourceCheckboxRow(source);
     }
     if (!row || colNum == -1) {
-        console.warn("report", `checkbox for ${directive} ${source} does not exist`);
+        // This could be something we just passthru
+        if (!Policy.AllowedPassthruDirectives.has(directive)) {
+            // Nope, might be report-to or similar (safe to ignore).
+            console.log("report", `checkbox for ${directive} ${source} does not exist`);
+        }
         return null;
     }
 
@@ -384,7 +388,8 @@ async function setCurrentRules(hostName)
         let serverPolicy = new Policy().fromHeader(header);
         for (let d in serverPolicy.directives) {
             if (!Policy.AllowedPassthruDirectives.has(d)) {
-                console.warn("report", `directive ${d} is not recognized`);
+                // This could also be legitimate directives we dont need, like img-src.
+                console.debug("report", `directive ${d} is not recognized`);
                 continue;
             }
             if (policy.directives[d]) {
