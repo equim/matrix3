@@ -320,7 +320,6 @@ async function getCurrentRules(hostName)
     let rule = RulesManager.getHostRule(hostName);
 
     if (!rule) {
-        console.log("report", `no existing rule for ${hostName}`);
         rule = await RulesManager.getEmptyRule(hostName);
     }
 
