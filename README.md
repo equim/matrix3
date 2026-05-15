@@ -1,18 +1,16 @@
 
 # matrix³
 
-This is matrix³, an experimental mv3 content policy manager.
-
-This extension is inspired by [uMatrix](https://github.com/gorhill/uMatrix),
-but built on `declarativeNetRequest`.
+This is matrix³, an experimental content policy manager, inspired by
+[umatrix](https://github.com/gorhill/uMatrix), but built on `declarativeNetRequest`.
 
 It looks like this -- it adds a sidepanel that lets you enable or disable web
-features.
+features for each site.
 
 <img width="303" src="https://github.com/user-attachments/assets/aaa3d687-cf5d-432a-b38b-f4b02454843a" />
 
-This extension basically provides an interface to `Content-Security-Policy`, so
-familiarity with the CSP3 specification is recommended.
+This extension basically just provides an interface to `Content-Security-Policy`, so
+familiarity with the CSP3 specification is a bonus. It is currently just a prototype.
 
 ## Installation
 
