@@ -39,14 +39,21 @@ function clearBadge(tabId) {
 chrome.webRequest.onHeadersReceived.addListener(async (details) => {
         let csp = details.responseHeaders.filter(hdr => hdr.name.toLowerCase() == "content-security-policy");
 
-        console.log("hdr", details.tabId, details.documentLifecycle, details.frameType, details.url);
+        console.log("hdr", details.tabId, details.documentLifecycle, details.frameType, details.url, details);
 
+        // Ignore requests not associated with a tab, or not part of the active lifecycle (e.g. prerendering).
+        if (details.tabId === -1 || details.documentLifecycle !== 'active')
+            return;
+
+        // handle mainframe navigations.
         if (details.frameId === 0)
             tracker.resetServerPolicy(details.tabId);
 
+        // This iterates over multiple policies, but currently the last policy always wins.
         for (let hdr of csp)
             await tracker.addServerPolicy(details.tabId, details.url, hdr.value);
 
+        // Update the UI if the main frame state reset or new policies were discovered.
         if (details.frameId === 0 || csp.length)
             chrome.runtime.sendMessage({
                 command: MessageTypes.NOTIFY_UPDATE,
@@ -60,17 +67,26 @@ chrome.webRequest.onHeadersReceived.addListener(async (details) => {
 
 // Monitor for CSP violation reports.
 chrome.webRequest.onBeforeRequest.addListener(async (details) => {
+        console.log("service", "onbeforerequest", details.tabId, details);
+
         // Drop reports from documents that no longer exist -- POSTs from the
         // previous page can still be in flight when the user reloads.
         if (!tracker.hasDocument(details.tabId, details.documentId))
             return;
+
+        // Check if we're learning about a new violation.
         if (!await tracker.addTabViolation(details.tabId, new CspReport(details)))
             return;
+
+        // Report new violations known by marking the icon.
         setBadge(details.tabId, "!", "#dc2626");
+
+        // Update any listening sidepanel.
         chrome.runtime.sendMessage({
             command: MessageTypes.NOTIFY_UPDATE,
                data: { id: details.tabId }
         }).catch(() => {});
+
     }, {
         types: [ "csp_report" ],
          urls: [ "<all_urls>" ]
@@ -80,6 +96,7 @@ chrome.webRequest.onBeforeRequest.addListener(async (details) => {
 // Record each frame's documentId at commit time. resetTab clears them
 // alongside everything else, so a top-frame navigation wipes the whole tree.
 chrome.webNavigation.onCommitted.addListener((details) => {
+    console.log("service", "oncommitted", details.tabId, details);
     tracker.addDocument(details.tabId, details.documentId);
 });
 
@@ -88,14 +105,10 @@ chrome.sidePanel.setPanelBehavior({openPanelOnActionClick: true }).catch((error)
 
 // Reset before the request so the CSP captured by onHeadersReceived survives.
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-    if (details.frameId !== 0) {
-        // Subframe navigated away; drop its old documentId. Note: this doesn't
-        // catch iframes removed from the DOM entirely, but prevents unbounded
-        // growth from auto-reloading iframes.
-        if (details.documentId)
-            tracker.removeDocument(details.tabId, details.documentId);
+    console.log("service", "onbeforenavigate", details.tabId, details);
+    if (details.frameId !== 0)
         return;
-    }
+
     tracker.resetViolations(details.tabId);
     clearBadge(details.tabId);
 });
