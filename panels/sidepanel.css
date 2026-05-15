@@ -85,7 +85,8 @@ table#sources:has(td:nth-child(9):hover)  col:nth-child(9),
 table#sources:has(td:nth-child(10):hover) col:nth-child(10),
 table#sources:has(td:nth-child(11):hover) col:nth-child(11),
 table#sources:has(td:nth-child(12):hover) col:nth-child(12),
-table#sources:has(td:nth-child(13):hover) col:nth-child(13) {
+table#sources:has(td:nth-child(13):hover) col:nth-child(13),
+table#sources tr:hover {
     background-color: rgba(127, 127, 127, 0.15);
 }
 
