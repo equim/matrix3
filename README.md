@@ -1,3 +1,4 @@
+
 # matrix³
 
 This is matrix³, an experimental mv3 content policy manager.
@@ -8,9 +9,7 @@ but built on `declarativeNetRequest`.
 It looks like this -- it adds a sidepanel that lets you enable or disable web
 features.
 
-<img width="2064"
-     height="1196"
-     src="https://github.com/user-attachments/assets/bccf9075-5853-4d5e-a828-e9ccce3217af" />
+<img width="303" src="https://github.com/user-attachments/assets/aaa3d687-cf5d-432a-b38b-f4b02454843a" />
 
 This extension basically provides an interface to `Content-Security-Policy`, so
 familiarity with the CSP3 specification is recommended.
