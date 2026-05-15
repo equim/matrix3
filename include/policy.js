@@ -25,12 +25,22 @@ export default class Policy {
     fromHeader(headerString) {
         let headerTokens = headerString.trim().split(';').filter(f => f.length);
 
-        // Reset directives, because we're importing from a header.
-        this.directives = {};
+        // Reset directives to a null-prototype object to prevent pollution.
+        this.directives = Object.create(null);
 
         for (let i = 0; i < headerTokens.length; i++) {
             const directive = headerTokens[i].trim().split(/\s+/);
-            const directiveName = directive.shift();
+            const directiveName = directive.shift().toLowerCase();
+
+            if (!directiveName)
+                continue;
+
+            // Per W3C, only the first occurrence of a directive is honored.
+            if (directiveName in this.directives) {
+                console.log("policy", "skipping duplicate directive", directiveName);
+                continue;
+            }
+
             this.directives[directiveName] = directive;
         }
         return this;
