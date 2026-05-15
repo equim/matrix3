@@ -39,9 +39,7 @@ export function setCheckboxes(list, state) {
         box.checked = state;
 }
 
-// Enforce single-checked semantics across a checkbox group. When `target`
-// belongs to `group` and was just checked, uncheck every other member.
-// `group` may be a NodeList, array, or any iterable of checkboxes.
+// Enforce single-checked semantics across a checkbox group.
 export function checkboxMutex(group, target) {
     let boxes = Array.from(group);
 
