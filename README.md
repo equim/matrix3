@@ -44,9 +44,8 @@ This is entirely optional, you can also ignore what the server suggests.
 
 ## Default Policies
 
-The default policy is **Sandbox**, which sandboxes the document -- many pages
-will fail to render correctly. That's intentional; you're expected to adjust
-per-host as you go.
+The default policy is **First Party**, which lets pages load their own
+scripts, styles, images, and fonts, but blocks third-party resources.
 
 If you find the default too restrictive, change the level in **Options**. The
 available policies are described here.
