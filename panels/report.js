@@ -108,10 +108,13 @@ function unblockReportedViolations() {
 
     setCurrentRules(originList.value);
 }
-// Apply (or remove) the selected group's origins to default-src. Other
-// directives inherit, so one column is enough.
+// Apply (or remove) the selected group's origins to default-src, script-src,
+// style-src, and img-src. default-src covers other directives via inheritance;
+// the rest are commonly set explicitly in strict policies so they need their
+// own entries.
 function applyTrustGroup(checked) {
     let name = document.getElementById('trustgroup').value;
+    let dirs = ["default-src", "script-src", "style-src", "img-src"];
     let origins;
 
     if (!name)
@@ -120,11 +123,13 @@ function applyTrustGroup(checked) {
     origins = sidepanel.options.groups?.[name] ?? [];
 
     for (let origin of origins) {
-        let box = findCheckbox(origin, "default-src", checked);
-        if (!box)
-            continue;
-        box.checked = checked;
-        enforceNoneLeader(box);
+        for (let dir of dirs) {
+            let box = findCheckbox(origin, dir, checked);
+            if (!box)
+                continue;
+            box.checked = checked;
+            enforceNoneLeader(box);
+        }
     }
 
     if (!checked)
@@ -209,11 +214,14 @@ function addSourceCheckboxRow(source)
     let existing = utils.findTableRow(directivesTable, source);
     let cols = utils.getTableColProps(directivesTable, "id");
     let colNodes = directivesTable.querySelectorAll("colgroup col");
+    let ignored = sidepanel.options.groups?.Ignore ?? [];
     let row;
     let title;
 
     if (existing)
         return existing;
+    if (ignored.includes(source))
+        return null;
 
     row = directivesTable.tBodies[0].insertRow(-1);
     title = document.createElement("th");
@@ -250,7 +258,7 @@ function findCheckbox(source, directive, autoAdd)
         // This could be something we just passthru
         if (!Policy.AllowedPassthruDirectives.has(directive)) {
             // Nope, might be report-to or similar (safe to ignore).
-            console.log("report", `checkbox for ${directive} ${source} does not exist`);
+            console.debug("report", `checkbox for ${directive} ${source} does not exist`);
         }
         return null;
     }

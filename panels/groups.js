@@ -6,6 +6,7 @@ const groupTemplate = document.getElementById('group-template');
 const originTemplate = document.getElementById('origin-template');
 
 sidepanel.options.groups ??= {};
+sidepanel.options.groups.Ignore ??= [];
 
 async function saveGroups() {
     await chrome.storage.sync.set({ options: sidepanel.options });
