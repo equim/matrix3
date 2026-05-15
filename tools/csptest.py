@@ -15,12 +15,22 @@ from pathlib import Path
 os.chdir(Path(__file__).resolve().parent)
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    current_csp = ''
+
+    def do_GET(self):
+        if self.path == '/':
+            return self._render(Handler.current_csp)
+        return super().do_GET()
+
     def do_POST(self):
         length = int(self.headers.get('Content-Length', 0))
         data = urllib.parse.parse_qs(self.rfile.read(length).decode('utf-8'))
 
         if self.path == '/apply':
-            self._render(data.get('csp', [''])[0])
+            Handler.current_csp = data.get('csp', [''])[0]
+            self.send_response(HTTPStatus.SEE_OTHER)
+            self.send_header('Location', '/')
+            self.end_headers()
         elif self.path == '/report':
             self.send_response(HTTPStatus.NO_CONTENT)
             self.end_headers()
