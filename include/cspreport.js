@@ -75,6 +75,7 @@ export default class CspReport {
             case "about:":
             case "data:":
             case "blob:":
+            case "trusted-types-sink:":
                 return protocol;
         }
     }
