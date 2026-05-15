@@ -39,7 +39,7 @@ function clearBadge(tabId) {
 chrome.webRequest.onHeadersReceived.addListener(async (details) => {
         let csp = details.responseHeaders.filter(hdr => hdr.name.toLowerCase() == "content-security-policy");
 
-        console.log("hdr", details.tabId, details.documentLifecycle, details.frameType, details.url, details);
+        console.debug("hdr", details.tabId, details.documentLifecycle, details.frameType, details.url, details);
 
         // Ignore requests not associated with a tab, or not part of the active lifecycle (e.g. prerendering).
         if (details.tabId === -1 || details.documentLifecycle !== 'active')
@@ -67,7 +67,7 @@ chrome.webRequest.onHeadersReceived.addListener(async (details) => {
 
 // Monitor for CSP violation reports.
 chrome.webRequest.onBeforeRequest.addListener(async (details) => {
-        console.log("service", "onbeforerequest", details.tabId, details);
+        console.debug("service", "onbeforerequest", details.tabId, details);
 
         // Drop reports from documents that no longer exist -- POSTs from the
         // previous page can still be in flight when the user reloads.
@@ -96,7 +96,7 @@ chrome.webRequest.onBeforeRequest.addListener(async (details) => {
 // Record each frame's documentId at commit time. resetTab clears them
 // alongside everything else, so a top-frame navigation wipes the whole tree.
 chrome.webNavigation.onCommitted.addListener((details) => {
-    console.log("service", "oncommitted", details.tabId, details);
+    console.debug("service", "oncommitted", details.tabId, details);
     tracker.addDocument(details.tabId, details.documentId);
 });
 
@@ -105,7 +105,7 @@ chrome.sidePanel.setPanelBehavior({openPanelOnActionClick: true }).catch((error)
 
 // Reset before the request so the CSP captured by onHeadersReceived survives.
 chrome.webNavigation.onBeforeNavigate.addListener((details) => {
-    console.log("service", "onbeforenavigate", details.tabId, details);
+    console.debug("service", "onbeforenavigate", details.tabId, details);
     if (details.frameId !== 0)
         return;
 
@@ -113,10 +113,10 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
     clearBadge(details.tabId);
 });
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
-    console.log("service", "onremoved", tabId, removeInfo);
+    console.debug("service", "onremoved", tabId, removeInfo);
     tracker.resetTab(tabId);
 });
 chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
-    console.log("service", "onreplaced", addedTabId, removedTabId);
+    console.debug("service", "onreplaced", addedTabId, removedTabId);
     tracker.resetTab(removedTabId);
 });

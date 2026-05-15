@@ -18,7 +18,7 @@ export default class CspReport {
         try {
             return new URL(uri);
         } catch (e) {
-            console.log("cspreport", "unexpected unparseable uri:", uri, e);
+            console.warn("cspreport", "unexpected unparseable uri:", uri, e);
             return null;
         }
     }

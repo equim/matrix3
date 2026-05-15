@@ -247,7 +247,7 @@ function findCheckbox(source, directive, autoAdd)
         row = addSourceCheckboxRow(source);
     }
     if (!row || colNum == -1) {
-        console.log("report", `checkbox for ${directive} ${source} does not exist`);
+        console.warn("report", `checkbox for ${directive} ${source} does not exist`);
         return null;
     }
 
@@ -383,9 +383,15 @@ async function setCurrentRules(hostName)
     for (let header of headers) {
         let serverPolicy = new Policy().fromHeader(header);
         for (let d in serverPolicy.directives) {
-            if (!Policy.AllowedPassthruDirectives.has(d)) continue;
-            if (!policy.directives[d])
-                policy.directives[d] = serverPolicy.directives[d];
+            if (!Policy.AllowedPassthruDirectives.has(d)) {
+                console.warn("report", `directive ${d} is not recognized`);
+                continue;
+            }
+            if (policy.directives[d]) {
+                console.warn("report", `duplicate directive ${d} dropped`);
+                continue;
+            }
+            policy.directives[d] = serverPolicy.directives[d];
         }
     }
 
@@ -496,8 +502,12 @@ async function populateServerPolicy() {
 }
 
 async function refreshViolations(domain) {
-    if (!domain) return;
     let tab = await sidepanel.getActiveTab();
+
+    if (!domain || !tab) {
+        console.warn("report", "refresh requested with unknown domain or tab", domain, tab);
+        return;
+    }
 
     const violations = await chrome.runtime.sendMessage({
         command: MessageTypes.REQ_POLICY,
@@ -520,8 +530,10 @@ function updateOriginScopeState() {
 
     document.body.classList.remove("inert");
 
-    if (proto !== "http:" && proto !== "https:")
+    if (proto !== "http:" && proto !== "https:") {
+        console.debug("report", `unhandled protocol ${proto}, disabling form`);
         document.body.classList.add("inert");
+    }
 }
 
 // Commit and Abandon only make sense when there's a session rule for the
@@ -541,7 +553,6 @@ function updateButtonStates() {
 }
 
 async function refreshTable(domain) {
-    if (!domain) return;
     resetDirectivesTable();
     resetSandboxDirectives();
     await getCurrentRules(domain);
@@ -554,6 +565,7 @@ function populateTrustGroups() {
     let names = Object.keys(sidepanel.options.groups ?? {});
 
     select.replaceChildren();
+
     for (let name of names) {
         let opt = document.createElement('option');
         opt.textContent = name;

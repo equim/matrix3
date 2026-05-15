@@ -50,7 +50,7 @@ export default class ViolationTracker {
             // Map them back to their CSP source keywords using the protocol.
             blocked = CspReport.protocolSource(report.blocked.protocol);
             if (blocked === undefined) {
-                console.log("tracker", "unknown blocked pseudo-scheme", report.blocked);
+                console.warn("tracker", "unknown blocked pseudo-scheme", report.blocked);
                 return false;
             }
         } else {
