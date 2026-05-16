@@ -1,5 +1,6 @@
 import * as utils from '/include/utils.js'
 import * as sidepanel from '/include/sidepanel.js'
+import { MessageTypes } from '/include/commands.js'
 
 let RulesManager = sidepanel.RulesManager;
 
@@ -83,4 +84,14 @@ document.getElementById('reset').addEventListener("click", async () => {
     await RulesManager.resetAllRules();
     updateRuleTables();
 });
+
+chrome.runtime.onMessage.addListener((msg) => {
+    switch (msg.command) {
+        case MessageTypes.NOTIFY_RULES:
+            // Another window mutated dNR rules; our mirror is stale.
+            RulesManager.init().then(() => updateRuleTables());
+            break;
+    }
+});
+
 updateRuleTables();

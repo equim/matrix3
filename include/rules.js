@@ -1,4 +1,5 @@
 import Policy from '/include/policy.js'
+import { MessageTypes } from '/include/commands.js'
 
 // A declarativeNetRequest rule (session or dynamic).
 class Rule {
@@ -195,6 +196,23 @@ export default class Rules {
         return ++this.#id;
     }
 
+    // Wrap dNR mutation APIs so every change broadcasts NOTIFY_RULES to
+    // sidepanels in other windows (their `#rules` mirror is now stale).
+    async #updateSessionRules(opts) {
+        await chrome.declarativeNetRequest.updateSessionRules(opts);
+        chrome.runtime.sendMessage({ command: MessageTypes.NOTIFY_RULES }).catch(() => {});
+    }
+
+    async #updateDynamicRules(opts) {
+        await chrome.declarativeNetRequest.updateDynamicRules(opts);
+        chrome.runtime.sendMessage({ command: MessageTypes.NOTIFY_RULES }).catch(() => {});
+    }
+
+    async #updateEnabledRulesets(opts) {
+        await chrome.declarativeNetRequest.updateEnabledRulesets(opts);
+        chrome.runtime.sendMessage({ command: MessageTypes.NOTIFY_RULES }).catch(() => {});
+    }
+
     #findSessionForHost(hostName) {
         return this.#rules.find(r =>  r.isSession && r.host == hostName);
     }
@@ -263,7 +281,7 @@ export default class Rules {
 
         this.#rules.push(rule);
 
-        await chrome.declarativeNetRequest.updateSessionRules({
+        await this.#updateSessionRules({
             removeRuleIds: oldSession ? [oldSession.id] : [],
             addRules: [ rule.toRule() ],
         });
@@ -280,7 +298,7 @@ export default class Rules {
     }
 
     async delSessionRule(rule) {
-        await chrome.declarativeNetRequest.updateSessionRules({
+        await this.#updateSessionRules({
             removeRuleIds: [rule.id],
             addRules: []
         });
@@ -288,7 +306,7 @@ export default class Rules {
     }
 
     async delDynamicRule(rule) {
-        await chrome.declarativeNetRequest.updateDynamicRules({
+        await this.#updateDynamicRules({
             removeRuleIds: [rule.id],
             addRules: []
         });
@@ -302,11 +320,11 @@ export default class Rules {
         let session = await chrome.declarativeNetRequest.getSessionRules();
         let dynamic = await chrome.declarativeNetRequest.getDynamicRules();
 
-        await chrome.declarativeNetRequest.updateSessionRules({
+        await this.#updateSessionRules({
             removeRuleIds: session.map(r => r.id),
             addRules: [],
         });
-        await chrome.declarativeNetRequest.updateDynamicRules({
+        await this.#updateDynamicRules({
             removeRuleIds: dynamic.map(r => r.id),
             addRules: [],
         });
@@ -333,11 +351,11 @@ export default class Rules {
         let session = this.#findSessionForHost(hostName);
         if (!rule || session)
             return;
-        await chrome.declarativeNetRequest.updateSessionRules({
+        await this.#updateSessionRules({
             removeRuleIds: [],
             addRules: [rule.toRule()],
         });
-        await chrome.declarativeNetRequest.updateDynamicRules({
+        await this.#updateDynamicRules({
             removeRuleIds: [rule.id],
             addRules: [],
         });
@@ -354,11 +372,11 @@ export default class Rules {
             return;
         if (prev)
             rule.priority = prev.priority;
-        await chrome.declarativeNetRequest.updateDynamicRules({
+        await this.#updateDynamicRules({
             removeRuleIds: prev ? [prev.id] : [],
             addRules: [rule.toRule()],
         });
-        await chrome.declarativeNetRequest.updateSessionRules({
+        await this.#updateSessionRules({
             removeRuleIds: [rule.id],
             addRules: [],
         });
@@ -396,7 +414,7 @@ export default class Rules {
                 disableRulesetIds.push(r.id);
         }
 
-        await chrome.declarativeNetRequest.updateEnabledRulesets({
+        await this.#updateEnabledRulesets({
             enableRulesetIds,
             disableRulesetIds,
         });
