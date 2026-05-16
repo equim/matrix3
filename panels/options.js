@@ -23,24 +23,29 @@ function syncOptionChanges(event) {
     sidepanel.applyOptions();
 }
 
-for (let i = 0; i < optionElements.length; i++) {
-    // Watch for changes, then sync it to options object.
-    optionElements[i].addEventListener("change", syncOptionChanges);
+function updateOptions() {
+    for (let i = 0; i < optionElements.length; i++) {
+        // Watch for changes, then sync it to options object.
+        optionElements[i].addEventListener("change", syncOptionChanges);
 
-    // Initialize form state from options.
-    switch (optionElements[i].type) {
-        case "checkbox": {
-            optionElements[i].checked = options[optionElements[i].id];
-            break
-        }
-        case "range": {
-            optionElements[i].value = options[optionElements[i].id];
-            break;
-        }
-        case "select-one": {
-            if (options[optionElements[i].id])
+        // Initialize form state from options.
+        switch (optionElements[i].type) {
+            case "checkbox": {
+                optionElements[i].checked = options[optionElements[i].id];
+                break
+            }
+            case "range": {
                 optionElements[i].value = options[optionElements[i].id];
-            break;
+                break;
+            }
+            case "select-one": {
+                if (options[optionElements[i].id])
+                    optionElements[i].value = options[optionElements[i].id];
+                break;
+            }
         }
     }
 }
+
+Options.addUpdateListener(() => updateOptions());
+updateOptions();
