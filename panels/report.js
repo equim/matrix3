@@ -603,11 +603,20 @@ chrome.tabs.onActivated.addListener(() => {
     userOrigin = undefined;
     updateReport();
 });
+async function handleNotifyUpdate(msg) {
+    // Ignore updates for tabs we aren't viewing -- when many tabs load
+    // concurrently the cross-tab churn would flicker the panel.
+    let tab = await sidepanel.getActiveTab();
+    if (msg.data?.id !== tab?.id)
+        return;
+    refreshViolations(originList.value);
+    populateServerPolicy();
+}
+
 chrome.runtime.onMessage.addListener((msg) => {
     switch (msg.command) {
         case MessageTypes.NOTIFY_UPDATE:
-            refreshViolations(originList.value);
-            populateServerPolicy();
+            handleNotifyUpdate(msg);
             break;
         case MessageTypes.NOTIFY_RULES:
             // Another window mutated dNR rules; our mirror is stale.
