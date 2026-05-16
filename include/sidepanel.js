@@ -5,7 +5,6 @@ let current = await chrome.windows.getCurrent();
 let options = await Options.get();
 
 const panel = document.getElementById("panel");
-const { path } = await chrome.sidePanel.getOptions({});
 
 // chrome.tabs.getCurrent() is undefined in side-panel/popup contexts.
 if (await chrome.tabs.getCurrent())
@@ -14,13 +13,13 @@ if (await chrome.tabs.getCurrent())
 export let RulesManager = new Rules();
 
 const sidepanelPages = {
-    "Report": "panels/report.html",
-     "Rules": "panels/manage.html",
-    "Groups": "panels/groups.html",
-   "Options": "panels/options.html",
-    "Export": "panels/export.html",
-      "Help": "panels/help.html",
-     "About": "panels/about.html",
+    "Report": "/panels/report.html",
+     "Rules": "/panels/manage.html",
+    "Groups": "/panels/groups.html",
+   "Options": "/panels/options.html",
+    "Export": "/panels/export.html",
+      "Help": "/panels/help.html",
+     "About": "/panels/about.html",
 };
 
 Options.addUpdateListener(() => applyOptions());
@@ -29,12 +28,12 @@ for (let page in sidepanelPages) {
     let opt = document.createElement("option");
     opt.innerText = page;
     opt.value = sidepanelPages[page];
-    opt.selected = path == opt.value;
+    opt.selected = location.pathname == opt.value;
     panel.add(opt);
 }
 
 panel.addEventListener("change", event => {
-    chrome.sidePanel.setOptions({ path: event.target.value });
+    location.href = event.target.value;
 });
 
 export async function getActiveTab()
