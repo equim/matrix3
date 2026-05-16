@@ -43,8 +43,27 @@ async function updateRuleTables() {
         row.insertCell(-1).innerText = ruleset.id;
     }
 
+    applyFilter();
     document.getElementById('reset').disabled = rules.length === 0;
 }
+
+function applyFilter() {
+    const filterText = document.getElementById('filter').value.toLowerCase();
+    const tables = [dynamicTbl, sessionTbl];
+    for (let table of tables) {
+        for (let row of table.rows) {
+            if (row.parentNode.tagName === 'THEAD')
+                continue;
+            if (row.innerText.toLowerCase().includes(filterText)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        }
+    }
+}
+
+document.getElementById('filter').addEventListener('input', applyFilter);
 
 document.getElementById('apply').addEventListener("click", async () => {
     for (let row of sessionTbl.rows)

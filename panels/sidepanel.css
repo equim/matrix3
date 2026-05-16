@@ -153,3 +153,7 @@ table#session tr td:last-of-type,
 table#dynamic tr td:last-of-type {
     font-size: smaller;
 }
+
+input#filter {
+    width: 100%;
+}
