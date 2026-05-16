@@ -29,11 +29,11 @@ export default class ViolationTracker {
     async addTabViolation(tabId, report) {
         let tab = this.#getOrCreateTab(tabId);
         let blocked = report.blocked?.origin;
+        let docUrl;
 
         if (!report.blocked)
             return false;
 
-        let docUrl;
         try {
             docUrl = new URL(report.report["document-uri"]);
         } catch (e) {
