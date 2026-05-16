@@ -1,4 +1,5 @@
 import CspReport from '/include/cspreport.js'
+import Options from '/include/options.js'
 import * as psl from '/include/psl.js'
 
 // Track sub-resource violations and surface them in the report panel, so
@@ -72,6 +73,13 @@ export default class ViolationTracker {
         tab.policy[domain] ??= {};
         tab.policy[domain][report.directive] ??= new Set();
         tab.policy[domain][report.directive].add(blocked);
+
+        // Check if this origin is in the ignored list, so we can skip
+        // notifications.
+        let options = await Options.get();
+        if (options?.groups?.Ignore?.includes(blocked))
+            return false;
+
         return true;
     }
 
