@@ -1,21 +1,23 @@
 import * as sidepanel from '/include/sidepanel.js'
+import Options from '/include/options.js'
 
 const groupsContainer = document.getElementById('groups');
 const newnameInput = document.getElementById('newname');
 const groupTemplate = document.getElementById('group-template');
 const originTemplate = document.getElementById('origin-template');
+const options = await Options.get();
 
-sidepanel.options.groups ??= {};
-sidepanel.options.groups.Ignore ??= [];
+options.groups ??= {};
+options.groups.Ignore ??= [];
 
 async function saveGroups() {
-    await chrome.storage.sync.set({ options: sidepanel.options });
+    await chrome.storage.sync.set({ options });
 }
 
 function updateGroupsDisplay() {
     groupsContainer.replaceChildren();
 
-    for (let [name, origins] of Object.entries(sidepanel.options.groups)) {
+    for (let [name, origins] of Object.entries(options.groups)) {
         let g = groupTemplate.content.cloneNode(true).firstElementChild;
         let ul = g.querySelector('ul');
         let input = g.querySelector('.neworigin');
@@ -40,17 +42,17 @@ async function addGroup() {
 
     if (!name)
         return;
-    if (name in sidepanel.options.groups)
+    if (name in options.groups)
         return;
 
-    sidepanel.options.groups[name] = [];
+    options.groups[name] = [];
     newnameInput.value = '';
     await saveGroups();
     updateGroupsDisplay();
 }
 
 async function deleteGroup(name) {
-    delete sidepanel.options.groups[name];
+    delete options.groups[name];
     await saveGroups();
     updateGroupsDisplay();
 }
@@ -60,16 +62,16 @@ async function addOrigin(group, origin) {
 
     if (!origin)
         return;
-    if (sidepanel.options.groups[group].includes(origin))
+    if (options.groups[group].includes(origin))
         return;
 
-    sidepanel.options.groups[group].push(origin);
+    options.groups[group].push(origin);
     await saveGroups();
     updateGroupsDisplay();
 }
 
 async function removeOrigin(group, origin) {
-    sidepanel.options.groups[group] = sidepanel.options.groups[group].filter(x => x !== origin);
+    options.groups[group] = options.groups[group].filter(x => x !== origin);
     await saveGroups();
     updateGroupsDisplay();
 }

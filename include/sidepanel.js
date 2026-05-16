@@ -1,7 +1,8 @@
 import Rules from '/include/rules.js'
+import Options from '/include/options.js'
 
 let current = await chrome.windows.getCurrent();
-export let { options } = await chrome.storage.sync.get("options");
+let options = await Options.get();
 
 const panel = document.getElementById("panel");
 const { path } = await chrome.sidePanel.getOptions({});
@@ -22,17 +23,7 @@ const sidepanelPages = {
      "About": "panels/about.html",
 };
 
-if (typeof options === "undefined") {
-    options = Object.create(null);
-    await chrome.storage.sync.set({ options: options });
-}
-
-chrome.storage.onChanged.addListener((changes) => {
-    if (changes.options) {
-        options = changes.options.newValue;
-        applyOptions();
-    }
-});
+Options.addUpdateListener(() => applyOptions());
 
 for (let page in sidepanelPages) {
     let opt = document.createElement("option");

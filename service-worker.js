@@ -3,6 +3,7 @@ import ViolationTracker from '/include/tracker.js'
 import RequestServer from '/server.js'
 import Rules from '/include/rules.js'
 import { MessageTypes } from '/include/commands.js'
+import Options from '/include/options.js'
 
 // Tracker state is in-memory; MV3 unloads the service worker after ~30s idle
 // and the captured CSP/violations vanish. Reload the tab to recapture.
@@ -12,7 +13,7 @@ let server = new RequestServer(tracker);
 // Apply stored options on browser-start / install -- otherwise the saved
 // defaultpolicy slider doesn't take effect until the sidepanel opens.
 async function applyStoredOptions() {
-    let { options } = await chrome.storage.sync.get("options");
+    let options = await Options.get();
     let rules;
     if (options?.defaultpolicy === undefined)
         return;
@@ -26,7 +27,7 @@ chrome.runtime.onInstalled.addListener(() => applyStoredOptions());
 // Set a badge on the toolbar icon for the given tab. Skipped when the
 // `badges` option is off so users can opt out of the visual clutter.
 async function setBadge(tabId, text, color) {
-    let { options } = await chrome.storage.sync.get("options");
+    let options = await Options.get();
     if (!options?.badges)
         return;
     chrome.action.setBadgeText({ text, tabId });

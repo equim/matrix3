@@ -1,23 +1,25 @@
 import * as sidepanel from '/include/sidepanel.js'
+import Options from '/include/options.js'
 
 const optionElements = document.querySelectorAll(".option");
+const options = await Options.get();
 
 function syncOptionChanges(event) {
     switch (event.target.type) {
         case "checkbox": {
-            sidepanel.options[event.target.id] = event.target.checked;
+            options[event.target.id] = event.target.checked;
             break;
         }
         case "range": {
-            sidepanel.options[event.target.id] = parseInt(event.target.value);
+            options[event.target.id] = parseInt(event.target.value);
             break;
         }
         case "select-one": {
-            sidepanel.options[event.target.id] = event.target.value;
+            options[event.target.id] = event.target.value;
             break;
         }
     }
-    chrome.storage.sync.set({ options: sidepanel.options });
+    chrome.storage.sync.set({ options: options });
     sidepanel.applyOptions();
 }
 
@@ -28,16 +30,16 @@ for (let i = 0; i < optionElements.length; i++) {
     // Initialize form state from options.
     switch (optionElements[i].type) {
         case "checkbox": {
-            optionElements[i].checked = sidepanel.options[optionElements[i].id];
+            optionElements[i].checked = options[optionElements[i].id];
             break
         }
         case "range": {
-            optionElements[i].value = sidepanel.options[optionElements[i].id];
+            optionElements[i].value = options[optionElements[i].id];
             break;
         }
         case "select-one": {
-            if (sidepanel.options[optionElements[i].id])
-                optionElements[i].value = sidepanel.options[optionElements[i].id];
+            if (options[optionElements[i].id])
+                optionElements[i].value = options[optionElements[i].id];
             break;
         }
     }

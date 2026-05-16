@@ -1,10 +1,12 @@
 import * as utils from '/include/utils.js'
 import * as sidepanel from '/include/sidepanel.js'
 import * as psl from '/include/psl.js'
+import Options from '/include/options.js'
 import Policy from '/include/policy.js'
 import { MessageTypes } from '/include/commands.js'
 
 let RulesManager = sidepanel.RulesManager;
+let options = await Options.get();
 
 const directivesTable = document.querySelector("table#sources")
 const sandboxTable = document.querySelector("table#sandbox")
@@ -120,7 +122,7 @@ function applyTrustGroup(checked) {
     if (!name)
         return;
 
-    origins = sidepanel.options.groups?.[name] ?? [];
+    origins = options.groups?.[name] ?? [];
 
     for (let origin of origins) {
         for (let dir of dirs) {
@@ -214,7 +216,7 @@ function addSourceCheckboxRow(source)
     let existing = utils.findTableRow(directivesTable, source);
     let cols = utils.getTableColProps(directivesTable, "id");
     let colNodes = directivesTable.querySelectorAll("colgroup col");
-    let ignored = sidepanel.options.groups?.Ignore ?? [];
+    let ignored = options.groups?.Ignore ?? [];
     let row;
     let title;
 
@@ -256,7 +258,7 @@ function findCheckbox(source, directive, autoAdd)
     }
     if (!row || colNum == -1) {
         // This could be something we just passthru
-        if (!Policy.isAllowedPassthruDirective(directive, sidepanel.options?.defaultscope)) {
+        if (!Policy.isAllowedPassthruDirective(directive, options?.defaultscope)) {
             // Nope, might be report-to or similar (safe to ignore).
             console.debug("report", `checkbox for ${directive} ${source} does not exist`);
         }
@@ -392,7 +394,7 @@ async function setCurrentRules(hostName)
             domain: hostName
         }
     });
-    let scope = sidepanel.options?.defaultscope;
+    let scope = options?.defaultscope;
 
     for (let header of headers) {
         let serverPolicy = new Policy().fromHeader(header);
@@ -577,7 +579,7 @@ async function refreshTable(domain) {
 
 function populateTrustGroups() {
     let select = document.getElementById('trustgroup');
-    let names = Object.keys(sidepanel.options.groups ?? {});
+    let names = Object.keys(options.groups ?? {});
 
     select.replaceChildren();
 

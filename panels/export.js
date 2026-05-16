@@ -1,15 +1,17 @@
 import * as sidepanel from '/include/sidepanel.js'
+import Options from '/include/options.js'
 
 const RulesManager = sidepanel.RulesManager;
 const outputElement = document.getElementById("export");
 const loadElement = document.getElementById("import");
+const options = await Options.get();
 
 async function buildExport() {
     let rules = RulesManager.getRules();
     return {
         session: rules.filter(r => r.isSession).map(r => r.toRule()),
         dynamic: rules.filter(r => !r.isSession).map(r => r.toRule()),
-        options: sidepanel.options,
+        options,
         enabledRulesets: await chrome.declarativeNetRequest.getEnabledRulesets(),
     };
 }
@@ -42,8 +44,8 @@ loadElement.addEventListener("click", async () => {
         });
 
     if (blob.options) {
-        Object.assign(sidepanel.options, blob.options);
-        await chrome.storage.sync.set({ options: sidepanel.options });
+        Object.assign(options, blob.options);
+        await chrome.storage.sync.set({ options });
     }
 
     // base is always-enabled and skipped by setEnabledRulesets anyway, but
@@ -58,5 +60,7 @@ loadElement.addEventListener("click", async () => {
     await sidepanel.applyOptions();
     await refreshExport();
 });
+
+Options.addUpdateListener(() => refreshExport());
 
 await refreshExport();
