@@ -9,17 +9,22 @@ export default class Policy {
     // Default directives -- override per instance as needed.
     directives = structuredClone(defaultPolicy);
 
-    // Server-supplied directives we don't manage in the UI but want to
-    // preserve in our generated rule so we don't silently weaken security.
-    static AllowedPassthruDirectives = new Set([
-        "frame-ancestors",
-        "form-action",
-        "upgrade-insecure-requests",
-        "block-all-mixed-content",
-        "require-trusted-types-for",
-        "trusted-types",
-        "base-uri",
-    ]);
+    // Server-CSP directives we preserve. Per-document ones need host scope --
+    // they can't merge across siblings in a domain-scoped bucket.
+    static isAllowedPassthruDirective(directive, scope) {
+        switch (directive) {
+            case "upgrade-insecure-requests":
+            case "block-all-mixed-content":
+                return true;
+            case "frame-ancestors":
+            case "form-action":
+            case "require-trusted-types-for":
+            case "trusted-types":
+            case "base-uri":
+                return scope === "host";
+        }
+        return false;
+    }
 
     // Initialize from a HTTP header.
     fromHeader(headerString) {

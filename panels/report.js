@@ -256,7 +256,7 @@ function findCheckbox(source, directive, autoAdd)
     }
     if (!row || colNum == -1) {
         // This could be something we just passthru
-        if (!Policy.AllowedPassthruDirectives.has(directive)) {
+        if (!Policy.isAllowedPassthruDirective(directive, sidepanel.options?.defaultscope)) {
             // Nope, might be report-to or similar (safe to ignore).
             console.debug("report", `checkbox for ${directive} ${source} does not exist`);
         }
@@ -392,16 +392,17 @@ async function setCurrentRules(hostName)
             domain: hostName
         }
     });
+    let scope = sidepanel.options?.defaultscope;
+
     for (let header of headers) {
         let serverPolicy = new Policy().fromHeader(header);
         for (let d in serverPolicy.directives) {
-            if (!Policy.AllowedPassthruDirectives.has(d)) {
-                // This could also be legitimate directives we dont need, like img-src.
-                console.debug("report", `directive ${d} is not recognized`);
+            if (!Policy.isAllowedPassthruDirective(d, scope)) {
+                console.log("report", `dropped directive ${d} for ${hostName}, not allowed in scope`);
                 continue;
             }
             if (policy.directives[d]) {
-                console.warn("report", `duplicate directive ${d} dropped`);
+                console.log("report", `duplicate directive ${d} dropped for ${hostName}`);
                 continue;
             }
             policy.directives[d] = serverPolicy.directives[d];
