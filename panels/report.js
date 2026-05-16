@@ -598,8 +598,15 @@ async function updateReport() {
     updateOriginScopeState();
 }
 
-chrome.webNavigation.onCommitted.addListener(() => updateReport());
-chrome.tabs.onActivated.addListener(() => {
+chrome.webNavigation.onCommitted.addListener(async (details) => {
+    let tab = await sidepanel.getActiveTab();
+    if (details.tabId !== tab?.id)
+        return;
+    updateReport();
+});
+chrome.tabs.onActivated.addListener((activeInfo) => {
+    if (activeInfo.windowId !== sidepanel.current.id)
+        return;
     userOrigin = undefined;
     updateReport();
 });

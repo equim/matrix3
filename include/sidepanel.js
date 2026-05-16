@@ -1,7 +1,7 @@
 import Rules from '/include/rules.js'
 import Options from '/include/options.js'
 
-let current = await chrome.windows.getCurrent();
+export let current = await chrome.windows.getCurrent();
 let options = await Options.get();
 
 const panel = document.getElementById("panel");
