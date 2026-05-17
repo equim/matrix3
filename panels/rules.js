@@ -53,8 +53,6 @@ function applyFilter() {
     const tables = [dynamicTbl, sessionTbl];
     for (let table of tables) {
         for (let row of table.rows) {
-            if (row.parentNode.tagName === 'THEAD')
-                continue;
             if (row.innerText.toLowerCase().includes(filterText)) {
                 row.style.display = '';
             } else {
