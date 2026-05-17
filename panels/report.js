@@ -332,15 +332,16 @@ function collapseDirective(directive)
 async function getCurrentRules(hostName)
 {
     let rule = RulesManager.getHostRule(hostName);
+    let className;
 
-    if (!rule) {
+    if (rule?.isSession)
+        className = "session";
+    else if (rule)
+        className = "dynamic";
+    else
         rule = await RulesManager.getEmptyRule(hostName);
-    }
 
     let policy = rule.policy;
-    let className = rule.isSession
-                  ? "session"
-                  : "dynamic";
 
     for (let directive in policy.directives) {
         let sources = policy.directives[directive];
