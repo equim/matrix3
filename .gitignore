@@ -1,3 +1,5 @@
 .*.sw?
 *.png
+*.zip
+*.crx
 _metadata/

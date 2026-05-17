@@ -29,11 +29,11 @@
         "path": "base.json"
       }, {
         "id": "permissive",
-        "enabled": false,
+        "enabled": true,
         "path": "permissive.json"
       }, {
         "id": "firstparty",
-        "enabled": true,
+        "enabled": false,
         "path": "firstparty.json"
       }, {
         "id": "sandbox",

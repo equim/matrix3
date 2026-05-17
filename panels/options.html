@@ -18,13 +18,13 @@
                 <td><label for=defaultpolicy>Default Policy Strictness</label></td>
                 <td>
                     <datalist id=policies>
-                        <option value=0 label="Off" />
+                        <option value=0 label="Permissive" />
                         <option value=1 label="First Party" />
                         <option value=2 label="Sandbox" />
                         <option value=3 label="First Party Sandboxed" />
                         <option value=4 label="Strict" />
                     </datalist>
-                    <input type=range list=policies id=defaultpolicy min=0 max=4 step=1 value=1 class=option />
+                    <input type=range list=policies id=defaultpolicy min=0 max=4 step=1 value=0 class=option />
                 </td>
             </tr>
             <tr>

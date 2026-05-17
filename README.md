@@ -42,11 +42,11 @@ This is entirely optional, you can also ignore what the server suggests.
 
 ## Default Policies
 
-The default policy is **First Party**, which lets pages load their own
-scripts, styles, images, and fonts, but blocks third-party resources.
+The default policy is **Permissive**, which means nothing is blocked by default
+until you configure specific rules.
 
-If you find the default too restrictive, change the level in **Options**. The
-available policies are described here.
+If you find you want a more restrictive baseline, change the level in
+**Options**. The available policies are described here.
 
 ### Permissive
 
@@ -56,7 +56,8 @@ site, you need to adjust it in the **Report** tab.
 ### First Party
 
 First-party scripts, styles, and other resources are generally allowed.
-Third-party resources are blocked unless you give them permission in the **Report** tab.
+Third-party resources are blocked unless you give them permission in the
+**Report** tab.
 
 ### Sandbox
 

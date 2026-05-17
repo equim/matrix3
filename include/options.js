@@ -7,7 +7,13 @@ export default class Options {
 
     static #load() {
         Options.#promise ??= chrome.storage.sync.get("options").then(({ options }) => {
-            Options.#cache = options || {};
+            // Default configuration for fresh installations.
+            Options.#cache = options || {
+                defaultpolicy: 0,
+                advanced: false,
+                badges: false,
+                defaultscope: "domain",
+            };
             chrome.storage.onChanged.addListener((changes) => {
                 if (!changes.options)
                     return;

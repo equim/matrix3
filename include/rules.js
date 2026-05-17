@@ -145,7 +145,7 @@ export default class Rules {
     // should be enabled alongside the always-on `base`. Additive -- higher
     // levels stack rulesets rather than replacing them.
     static PolicyRulesets = [
-        [],                          // 0: Off
+        ["permissive"],              // 0: Off
         ["firstparty"],              // 1: First Party
         ["sandbox"],                 // 2: Sandbox
         ["sandbox", "firstparty"],   // 3: First Party Sandboxed
