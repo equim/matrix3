@@ -1,4 +1,4 @@
-VERSION = 0.01
+VERSION = $(shell jq -r .version < manifest.json)
 .PHONY: clean
 
 all: matrix3_32.png matrix3_64.png matrix3_128.png
