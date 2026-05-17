@@ -1,6 +1,12 @@
+VERSION = 0.01
 .PHONY: clean
 
 all: matrix3_32.png matrix3_64.png
+
+dist: matrix3-$(VERSION).zip
+
+%.zip: all
+	git ls-files --exclude-standard | zip $@ -@ -x "tools/*" ".gitignore" "*/.gitignore" "Makefile" "*/Makefile"
 
 %_32.png: %.svg
 	magick -size 32x32 $^ png:$@
@@ -9,4 +15,4 @@ all: matrix3_32.png matrix3_64.png
 	magick -size 64x64 $^ png:$@
 
 clean:
-	rm -f *.png
+	rm -f *.png *.crx *.zip
