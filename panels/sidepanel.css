@@ -157,3 +157,12 @@ table#dynamic tr td:last-of-type {
 input#filter {
     width: 100%;
 }
+
+/* The remove button on the groups panel */
+button.delorigin {
+    min-width: 1em;
+}
+span.origin-name {
+    padding-left: 1em;
+}
+
