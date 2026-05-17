@@ -290,11 +290,13 @@ export default class Rules {
     // Delete the session rule for hostName (if any); any dynamic rule stays put.
     async abandonSessionRulesForHost(hostName) {
         let rule = this.#findSessionForHost(hostName);
+
         if (!rule) {
             console.error("rules", `attempted to abandon non-existant session rule for ${hostName}`);
             return;
         }
-        await this.delSessionRule(this.#findSessionForHost(hostName));
+
+        await this.delSessionRule(rule);
     }
 
     async delSessionRule(rule) {
