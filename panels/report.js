@@ -292,7 +292,7 @@ function getSourceCheckboxState(source, directive)
     return findCheckbox(source, directive, false)?.checked;
 }
 
-// Check 'none' in default-src if nothing else is, so the CSP isn't
+// Check a sensible default-src if nothing else is, so the CSP isn't
 // implicitly wide-open. Skipped when sandbox is enabled (sandbox is enough).
 function fallbackToNone() {
     let col;
@@ -303,6 +303,8 @@ function fallbackToNone() {
 
     col = utils.getTableColProps(directivesTable, "id").indexOf("default-src");
     boxes = Array.from(directivesTable.tBodies[0].rows, r => r.cells[col].firstChild);
+
+    // I'm not sure if we should use self or none here.
     if (!boxes.some(b => b.checked))
         findCheckbox("'self'", "default-src", true).checked = true;
 }
