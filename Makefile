@@ -1,7 +1,7 @@
 VERSION = 0.01
 .PHONY: clean
 
-all: matrix3_32.png matrix3_64.png
+all: matrix3_32.png matrix3_64.png matrix3_128.png
 
 dist: matrix3-$(VERSION).zip
 
@@ -13,6 +13,9 @@ dist: matrix3-$(VERSION).zip
 
 %_64.png: %.svg
 	magick -size 64x64 $^ png:$@
+
+%_128.png: %.svg
+	magick -size 128x128 $^ png:$@
 
 clean:
 	rm -f *.png *.crx *.zip
