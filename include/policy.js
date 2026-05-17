@@ -1,13 +1,13 @@
 // This class is just a simple representation of a csp policy.
 
 // The default blank policy you get from new Policy()
-const defaultPolicy = {
+const kDefaultPolicy = {
     "report-uri": [ "https://_matrix3.internal/csp-report" ],
 };
 
 export default class Policy {
     // Default directives -- override per instance as needed.
-    directives = structuredClone(defaultPolicy);
+    directives = structuredClone(kDefaultPolicy);
 
     // Server-CSP directives we preserve. Per-document ones need host scope --
     // they can't merge across siblings in a domain-scoped bucket.
