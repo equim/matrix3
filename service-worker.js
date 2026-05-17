@@ -52,7 +52,8 @@ chrome.webRequest.onHeadersReceived.addListener(async (details) => {
         if (details.frameId === 0)
             tracker.resetServerPolicy(details.tabId);
 
-        // This iterates over multiple policies, but currently the last policy always wins.
+        // Track each policy header the server sends; the tracker collects them
+        // in a Set so the UI can display and analyze all of them.
         for (let hdr of csp)
             await tracker.addServerPolicy(details.tabId, details.url, hdr.value);
 
