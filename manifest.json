@@ -50,7 +50,6 @@
     "webNavigation",
     "webRequest",
     "declarativeNetRequest",
-    "declarativeNetRequestFeedback",
     "tabs",
     "sidePanel",
     "storage"
