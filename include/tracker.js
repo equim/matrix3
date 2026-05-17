@@ -74,8 +74,8 @@ export default class ViolationTracker {
         tab.policy[domain][report.directive] ??= new Set();
         tab.policy[domain][report.directive].add(blocked);
 
-        // Check if this origin is in the ignored list, so we can skip
-        // notifications.
+        // Caller uses our return value to decide whether to badge and notify;
+        // ignored origins are recorded silently.
         let options = await Options.get();
         if (options?.groups?.Ignore?.includes(blocked))
             return false;

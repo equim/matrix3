@@ -23,16 +23,14 @@ function syncOptionChanges(event) {
     sidepanel.applyOptions();
 }
 
+// Reflect cached options into form state. Called once at startup and again
+// whenever another window mutates options.
 function updateOptions() {
     for (let i = 0; i < optionElements.length; i++) {
-        // Watch for changes, then sync it to options object.
-        optionElements[i].addEventListener("change", syncOptionChanges);
-
-        // Initialize form state from options.
         switch (optionElements[i].type) {
             case "checkbox": {
                 optionElements[i].checked = options[optionElements[i].id];
-                break
+                break;
             }
             case "range": {
                 optionElements[i].value = options[optionElements[i].id];
@@ -46,6 +44,10 @@ function updateOptions() {
         }
     }
 }
+
+// Watch for changes, then sync them to the options object.
+for (let i = 0; i < optionElements.length; i++)
+    optionElements[i].addEventListener("change", syncOptionChanges);
 
 Options.addUpdateListener(() => updateOptions());
 updateOptions();
