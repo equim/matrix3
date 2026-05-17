@@ -25,10 +25,18 @@ chrome.runtime.onStartup.addListener(() => applyStoredOptions());
 chrome.runtime.onInstalled.addListener(() => applyStoredOptions());
 
 // Set a badge on the toolbar icon for the given tab. Skipped when the
-// `badges` option is off so users can opt out of the visual clutter.
+// `badges` option is off so users can opt out of the visual clutter or
+// if the sidepanel is already open.
 async function setBadge(tabId, text, color) {
     let options = await Options.get();
+    let contexts;
     if (!options?.badges)
+        return;
+    contexts = await chrome.runtime.getContexts({
+        contextTypes: ["SIDE_PANEL"],
+        tabIds: [tabId]
+    });
+    if (contexts.length)
         return;
     chrome.action.setBadgeText({ text, tabId });
     chrome.action.setBadgeBackgroundColor({ color, tabId });

@@ -595,10 +595,13 @@ function populateTrustGroups() {
 }
 
 async function updateReport() {
+    let tab = await sidepanel.getActiveTab();
     await populateOriginList(userOrigin ?? originList.value);
     await refreshTable(originList.value);
     populateServerPolicy();
     updateOriginScopeState();
+    // If the user has opened the report, clear any icon badge.
+    if (tab) chrome.action.setBadgeText({ text: '', tabId: tab.id });
 }
 
 chrome.webNavigation.onCommitted.addListener(async (details) => {
