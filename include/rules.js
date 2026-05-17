@@ -177,11 +177,9 @@ export default class Rules {
         }
 
         // Chrome's API doesn't list disabled rulesets, so enumerate them from the manifest.
-        chrome.runtime
-              .getManifest()
-              .declarative_net_request
-              .rule_resources
-              .forEach(r => this.#staticRulesets.push(new Ruleset(r)));
+        for (const resource of chrome.runtime.getManifest().declarative_net_request.rule_resources) {
+            this.#staticRulesets.push(new Ruleset(resource));
+        }
 
         for (let ruleset of this.#staticRulesets) {
             // Sync current state and probe internal rule IDs.
