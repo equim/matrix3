@@ -58,8 +58,8 @@ document.getElementById('reset').addEventListener("click", async () => {
     await RulesManager.resetHostRules(originList.value);
     updateReport();
 });
-document.getElementById('reload').addEventListener("click", async () => {
-    await chrome.tabs.reload();
+document.getElementById('reload').addEventListener("click", async (event) => {
+    await chrome.tabs.reload(undefined, { bypassCache: event.shiftKey });
 });
 document.getElementById('abandon').addEventListener("click", async () => {
     await RulesManager.abandonSessionRulesForHost(originList.value);
