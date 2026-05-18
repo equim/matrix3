@@ -126,11 +126,16 @@ class Ruleset {
         await this.#load();
 
         csp = this.json?.action?.responseHeaders?.find(r => r.header == "Content-Security-Policy");
+
+        // Return a blank policy if none already set.
         if (!csp)
             return policy;
+
+        // Handle permissive policies that dont modify csp.
         if (csp.operation != "set")
             return policy;
 
+        // Parse the policy we're setting.
         return policy.fromHeader(csp.value);
     }
 }
@@ -141,9 +146,8 @@ export default class Rules {
     #id;
     #rules;
 
-    // Map the defaultpolicy option slider (0-4) to the static rulesets that
-    // should be enabled alongside the always-on `base`. Additive -- higher
-    // levels stack rulesets rather than replacing them.
+    // Map the defaultpolicy option slider to the static rulesets that should
+    // be enabled.
     static PolicyRulesets = [
         ["permissive"],              // 0: Off
         ["firstparty"],              // 1: First Party
@@ -164,17 +168,15 @@ export default class Rules {
         let dynamic = await chrome.declarativeNetRequest.getDynamicRules();
         let session = await chrome.declarativeNetRequest.getSessionRules();
 
-        this.#rules = [
-            ...dynamic.map(r => new Rule(r)),
-            ...session.map(r => new Rule(r, true)),
-        ];
-        this.#staticRulesets = [];
+        this.#rules = new Map();
 
-        // Track the highest ID in use to avoid collisions.
-        for (let r of this.#rules) {
-            if (r.id > this.#id)
-                this.#id = r.id;
-        }
+        for (let r of dynamic)
+            this.#setRule(new Rule(r));
+
+        for (let r of session)
+            this.#setRule(new Rule(r, true));
+
+        this.#staticRulesets = [];
 
         // Chrome's API doesn't list disabled rulesets, so enumerate them from the manifest.
         for (const resource of chrome.runtime.getManifest().declarative_net_request.rule_resources) {
@@ -185,8 +187,38 @@ export default class Rules {
             // Sync current state and probe internal rule IDs.
             await ruleset.isEnabled();
             await ruleset.toPolicy();
-            if (ruleset.json?.id > this.#id)
-                this.#id = ruleset.json.id;
+        }
+
+        // Collect all the rule ids currently refined.
+        let dynamicAndSessionIds = this.getRules().map(r => r.id);
+
+        // Find the next available id to assign to new rules.
+        this.#id = Math.max(0, ...dynamicAndSessionIds);
+    }
+
+    #setRule(rule) {
+        let entry = this.#rules.get(rule.host) || {};
+        if (rule.isSession) {
+            entry.session = rule;
+        } else {
+            entry.dynamic = rule;
+        }
+        this.#rules.set(rule.host, entry);
+    }
+
+    #deleteRule(rule) {
+        let entry = this.#rules.get(rule.host);
+        if (!entry) return;
+
+        if (rule.isSession) {
+            delete entry.session;
+        } else {
+            delete entry.dynamic;
+        }
+
+        // No rules remain for this host, delete the Map entry.
+        if (!entry.session && !entry.dynamic) {
+            this.#rules.delete(rule.host);
         }
     }
 
@@ -212,15 +244,11 @@ export default class Rules {
     }
 
     #findSessionForHost(hostName) {
-        return this.#rules.find(r =>  r.isSession && r.host == hostName);
+        return this.#rules.get(hostName)?.session;
     }
 
     #findDynamicForHost(hostName) {
-        return this.#rules.find(r => !r.isSession && r.host == hostName);
-    }
-
-    #removeRule(id) {
-        this.#rules = this.#rules.filter(r => r.id != id);
+        return this.#rules.get(hostName)?.dynamic;
     }
 
     // Empty template rule seeded with the active default ruleset's policy.
@@ -231,19 +259,9 @@ export default class Rules {
 
         for (let ruleset of enabledRulesets) {
              const p = await ruleset.toPolicy();
+             // Copy all directives from each enabled ruleset.
              for (const [dir, sources] of Object.entries(p.directives)) {
-                 let isRedundant = true;
-
-                 if (isRedundant && dir !== "default-src")
-                     isRedundant = false;
-                 if (isRedundant && sources[0] !== "'none'")
-                     isRedundant = false;
-                 if (isRedundant && policy.directives[dir]?.[0] !== "'none'")
-                     isRedundant = false;
-
-                 if (!isRedundant) {
-                     policy.directives[dir] = [...sources];
-                 }
+                policy.directives[dir] = [...sources];
              }
         }
 
@@ -265,19 +283,22 @@ export default class Rules {
         let oldSession = this.#findSessionForHost(hostName);
         let oldDynamic = this.#findDynamicForHost(hostName);
 
-        // Point report-uri at our extension's WAR so report POSTs succeed locally
-        // instead of logging ERR_BLOCKED_BY_CLIENT against the placeholder URL.
+        // Point report-uri at our extension's WAR to avoid ERR_BLOCKED_BY_CLIENT errors.
         rulePolicy.directives["report-uri"] = [chrome.runtime.getURL("csp-report")];
 
         rule.fromPolicy(rulePolicy);
         rule.isSession = true;
+
+        // The new session rule should take priority over any old dynamic rule, the
+        // user can test it and then commit it.
         if (oldDynamic)
             rule.priority = oldDynamic.priority + 1;
 
+        // The new session rule replaces any old session rule.
         if (oldSession)
-            this.#removeRule(oldSession.id);
+            this.#deleteRule(oldSession);
 
-        this.#rules.push(rule);
+        this.#setRule(rule);
 
         await this.#updateSessionRules({
             removeRuleIds: oldSession ? [oldSession.id] : [],
@@ -302,7 +323,7 @@ export default class Rules {
             removeRuleIds: [rule.id],
             addRules: []
         });
-        this.#removeRule(rule.id);
+        this.#deleteRule(rule);
     }
 
     async delDynamicRule(rule) {
@@ -310,7 +331,7 @@ export default class Rules {
             removeRuleIds: [rule.id],
             addRules: []
         });
-        this.#removeRule(rule.id);
+        this.#deleteRule(rule);
     }
 
     // Wipe every session and dynamic rule (two batched API calls). Queries
@@ -329,18 +350,16 @@ export default class Rules {
             addRules: [],
         });
 
-        this.#rules = [];
+        this.#rules.clear();
     }
 
     // Remove every session and dynamic rule for this host.
     async resetHostRules(hostName) {
-        let matches = this.#rules.filter(r => r.host == hostName);
-        for (let rule of matches) {
-            if (rule.isSession)
-                await this.delSessionRule(rule);
-            else
-                await this.delDynamicRule(rule);
-        }
+        let session = this.#findSessionForHost(hostName);
+        let dynamic = this.#findDynamicForHost(hostName);
+
+        if (session) await this.delSessionRule(session);
+        if (dynamic) await this.delDynamicRule(dynamic);
     }
 
     // Demote the host's dynamic rule into a session rule (inverse of Commit).
@@ -359,7 +378,9 @@ export default class Rules {
             removeRuleIds: [rule.id],
             addRules: [],
         });
+        this.#deleteRule(rule);
         rule.isSession = true;
+        this.#setRule(rule);
     }
 
     // Promote the host's session rule into a dynamic rule, replacing any
@@ -380,9 +401,11 @@ export default class Rules {
             removeRuleIds: [rule.id],
             addRules: [],
         });
+        this.#deleteRule(rule);
         rule.isSession = false;
+        this.#setRule(rule);
         if (prev)
-            this.#removeRule(prev.id);
+            this.#deleteRule(prev);
     }
 
     // Rule for matching host, preferring session over dynamic.
@@ -391,7 +414,7 @@ export default class Rules {
     }
 
     getRules() {
-        return this.#rules;
+        return Array.from(this.#rules.values()).flatMap(v => Object.values(v));
     }
 
     getAllStaticRules() {
