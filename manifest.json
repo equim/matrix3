@@ -2,7 +2,7 @@
   "name": "matrix³",
   "version": "1.0.1",
   "manifest_version": 3,
-  "description": "Minimal Content Security Policy Manager",
+  "description": "A Minimal Content Security Policy Manager",
   "icons": {
       "32": "matrix3_32.png",
       "64": "matrix3_64.png"
