@@ -190,30 +190,32 @@ function resetSandboxDirectives()
     utils.setCheckboxes(document.querySelectorAll("td input.sandbox"), false);
 }
 
-function resetDirectivesTable()
+function buildDefaultDirectivesFragment()
 {
-    utils.clearTable(directivesTable);
+    let fragment = document.createDocumentFragment();
 
     // Add some default sources.
-    addSourceCheckboxRow("'none'");
-    addSourceCheckboxRow("'self'");
-    addSourceCheckboxRow("'strict-dynamic'");
-    addSourceCheckboxRow("'unsafe-eval'");
-    addSourceCheckboxRow("'wasm-unsafe-eval'");
-    addSourceCheckboxRow("'unsafe-inline'");
-    addSourceCheckboxRow("'unsafe-hashes'");
-    addSourceCheckboxRow("https:");
-    addSourceCheckboxRow("http:");
-    addSourceCheckboxRow("data:");
-    addSourceCheckboxRow("blob:");
+    addSourceCheckboxRow("'none'", fragment);
+    addSourceCheckboxRow("'self'", fragment);
+    addSourceCheckboxRow("'strict-dynamic'", fragment);
+    addSourceCheckboxRow("'unsafe-eval'", fragment);
+    addSourceCheckboxRow("'wasm-unsafe-eval'", fragment);
+    addSourceCheckboxRow("'unsafe-inline'", fragment);
+    addSourceCheckboxRow("'unsafe-hashes'", fragment);
+    addSourceCheckboxRow("https:", fragment);
+    addSourceCheckboxRow("http:", fragment);
+    addSourceCheckboxRow("data:", fragment);
+    addSourceCheckboxRow("blob:", fragment);
 
+    return fragment;
 }
 
 // Add a row with the given source name, or return the existing row.
 // Idempotent so callers can blindly re-add the same nonce/hash every refresh.
-function addSourceCheckboxRow(source)
+function addSourceCheckboxRow(source, container = directivesTable.tBodies[0])
 {
-    let existing = utils.findTableRow(directivesTable, source);
+    // Check if it already exists in the container (which might be a fragment)
+    let existing = Array.from(container.children).find(r => r.cells[0]?.textContent === source);
     let cols = utils.getTableColProps(directivesTable, "id");
     let colNodes = directivesTable.querySelectorAll("colgroup col");
     let ignored = options.groups?.Ignore ?? [];
@@ -225,7 +227,7 @@ function addSourceCheckboxRow(source)
     if (ignored.includes(source))
         return null;
 
-    row = directivesTable.tBodies[0].insertRow(-1);
+    row = document.createElement("tr");
     title = document.createElement("th");
 
     title.textContent = source;
@@ -243,18 +245,20 @@ function addSourceCheckboxRow(source)
         cell.appendChild(box);
     }
 
+    container.appendChild(row);
+
     return row;
 }
 
-function findCheckbox(source, directive, autoAdd)
+function findCheckbox(source, directive, autoAdd, container = directivesTable.tBodies[0])
 {
     let cols = utils.getTableColProps(directivesTable, "id");
-    let row = utils.findTableRow(directivesTable, source);
+    let row = Array.from(container.children).find(r => r.cells[0]?.textContent === source);
     let colNum = cols.indexOf(directive);
 
     if (!row && autoAdd) {
         console.debug("report", `source name ${source} is unknown, adding`);
-        row = addSourceCheckboxRow(source);
+        row = addSourceCheckboxRow(source, container);
     }
     if (!row || colNum == -1) {
         // This could be something we just passthru
@@ -268,11 +272,11 @@ function findCheckbox(source, directive, autoAdd)
     return row.cells[colNum].firstChild;
 }
 
-function setSourceCheckboxState(source, directive, state, className)
+function setSourceCheckboxState(source, directive, state, className, container = directivesTable.tBodies[0])
 {
     if (!source)
         return;
-    let box = findCheckbox(source, directive, true);
+    let box = findCheckbox(source, directive, true, container);
     if (!box)
         return;
     box.checked = state;
@@ -280,21 +284,21 @@ function setSourceCheckboxState(source, directive, state, className)
         box.classList.add(className);
 }
 
-function setSourceCheckboxClass(source, directive, className)
+function setSourceCheckboxClass(source, directive, className, container = directivesTable.tBodies[0])
 {
-    let box = findCheckbox(source, directive, true);
+    let box = findCheckbox(source, directive, true, container);
     if (box)
         box.classList.add(className);
 }
 
-function getSourceCheckboxState(source, directive)
+function getSourceCheckboxState(source, directive, container = directivesTable.tBodies[0])
 {
-    return findCheckbox(source, directive, false)?.checked;
+    return findCheckbox(source, directive, false, container)?.checked;
 }
 
 // Check a sensible default-src if nothing else is, so the CSP isn't
 // implicitly wide-open. Skipped when sandbox is enabled (sandbox is enough).
-function fallbackToNone() {
+function fallbackToNone(container = directivesTable.tBodies[0]) {
     let col;
     let boxes;
 
@@ -302,11 +306,11 @@ function fallbackToNone() {
         return;
 
     col = utils.getTableColProps(directivesTable, "id").indexOf("default-src");
-    boxes = Array.from(directivesTable.tBodies[0].rows, r => r.cells[col].firstChild);
+    boxes = Array.from(container.children, r => r.cells[col].firstChild);
 
     // I'm not sure if we should use self or none here.
     if (!boxes.some(b => b.checked))
-        findCheckbox("'self'", "default-src", true).checked = true;
+        findCheckbox("'self'", "default-src", true, container).checked = true;
 }
 
 // Sort sources alphabetically, but with nonce-* / sha*-* values at the end
@@ -331,7 +335,7 @@ function collapseDirective(directive)
     return directive;
 }
 
-async function getCurrentRules(hostName)
+async function getCurrentRules(hostName, container)
 {
     let rule = RulesManager.getHostRule(hostName);
     let className;
@@ -365,16 +369,16 @@ async function getCurrentRules(hostName)
 
         let dir = collapseDirective(directive);
         for (let src of sources)
-            setSourceCheckboxState(src, dir, true, className);
+            setSourceCheckboxState(src, dir, true, className, container);
     }
 }
 
-function setCurrentViolations(data)
+function setCurrentViolations(data, container)
 {
     for (let directive in data) {
         let dir = collapseDirective(directive);
         for (let src of data[directive])
-            setSourceCheckboxClass(src, dir, "violation");
+            setSourceCheckboxClass(src, dir, "violation", container);
     }
 }
 
@@ -526,7 +530,7 @@ async function refreshViolations(domain) {
     if (!domain || !tab) {
         // This can happen with multiple windows or devtools.
         console.debug("report", "refresh requested with unknown domain or tab", domain, tab);
-        return;
+        return null;
     }
 
     const violations = await chrome.runtime.sendMessage({
@@ -537,9 +541,7 @@ async function refreshViolations(domain) {
         }
     });
 
-    setCurrentViolations(violations);
-    utils.sortTable(directivesTable, compareSourceRows);
-    updateButtonStates();
+    return violations;
 }
 
 // Allowlist http(s) only; everything else (chrome:, about:, devtools:, etc.)
@@ -573,10 +575,27 @@ function updateButtonStates() {
 }
 
 async function refreshTable(domain) {
-    resetDirectivesTable();
+    let fragment = buildDefaultDirectivesFragment();
+
     resetSandboxDirectives();
-    await getCurrentRules(domain);
-    await refreshViolations(domain);
+
+    await getCurrentRules(domain, fragment);
+
+    let violations = await refreshViolations(domain);
+
+    if (violations) {
+        setCurrentViolations(violations, fragment);
+    }
+
+    // Sort the fragment children before appending
+    let rows = Array.from(fragment.children);
+    rows.sort(compareSourceRows);
+
+    fragment.replaceChildren(...rows);
+
+    // Atomic swap
+    directivesTable.tBodies[0].replaceChildren(fragment);
+
     updateButtonStates();
 }
 
@@ -600,29 +619,46 @@ async function updateReport() {
     await refreshTable(originList.value);
     populateServerPolicy();
     updateOriginScopeState();
+
     // If the user has opened the report, clear any icon badge.
     if (tab) chrome.action.setBadgeText({ text: '', tabId: tab.id });
 }
 
 chrome.webNavigation.onCommitted.addListener(async (details) => {
     let tab = await sidepanel.getActiveTab();
+
+    // Ignore notifications about other tabs.
     if (details.tabId !== tab?.id)
         return;
+
     updateReport();
 });
+
 chrome.tabs.onActivated.addListener((activeInfo) => {
+    // Ignore notifications about other windows.
     if (activeInfo.windowId !== sidepanel.current.id)
         return;
+
+    // Reset saved origin on navigation.
     userOrigin = undefined;
     updateReport();
 });
+
 async function handleNotifyUpdate(msg) {
-    // Ignore updates for tabs we aren't viewing -- when many tabs load
-    // concurrently the cross-tab churn would flicker the panel.
     let tab = await sidepanel.getActiveTab();
+
+    // Ignore updates for tabs we aren't viewing.
     if (msg.data?.id !== tab?.id)
         return;
-    refreshViolations(originList.value);
+
+    let violations = await refreshViolations(originList.value);
+
+    if (violations) {
+        setCurrentViolations(violations);
+        utils.sortTable(directivesTable, compareSourceRows);
+        updateButtonStates();
+    }
+
     populateServerPolicy();
 }
 
