@@ -4,6 +4,7 @@ import Options from '/include/options.js'
 const RulesManager = sidepanel.RulesManager;
 const outputElement = document.getElementById("export");
 const loadElement = document.getElementById("import");
+const downloadElement = document.getElementById("download");
 const options = await Options.get();
 
 async function buildExport() {
@@ -19,6 +20,16 @@ async function buildExport() {
 async function refreshExport() {
     outputElement.value = JSON.stringify(await buildExport(), null, 2);
 }
+
+downloadElement.addEventListener("click", () => {
+    const blob = new Blob([outputElement.value], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "matrix3.json";
+    link.click();
+    URL.revokeObjectURL(url);
+});
 
 loadElement.addEventListener("click", async () => {
     let blob;
