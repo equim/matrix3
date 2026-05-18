@@ -1,0 +1,74 @@
+{
+  "sources": [
+    {
+      "name": "'self'",
+      "regex": "^'self'$",
+      "description": "Allows loading resources from the same origin (same scheme, host, and port) as the document."
+    },
+    {
+      "name": "'unsafe-inline'",
+      "regex": "^'unsafe-inline'$",
+      "description": "Allows the use of inline resources, such as inline <script> elements, <style> elements, and inline event handlers."
+    },
+    {
+      "name": "'strict-dynamic'",
+      "regex": "^'strict-dynamic'$",
+      "description": "Allows scripts that are explicitly trusted via a nonce or hash to load and execute additional scripts."
+    },
+    {
+      "name": "'unsafe-eval'",
+      "regex": "^'unsafe-eval'$",
+      "description": "Allows the use of eval() and other similar methods for creating code from strings."
+    },
+    {
+      "name": "'wasm-unsafe-eval'",
+      "regex": "^'wasm-unsafe-eval'$",
+      "description": "Allows the use of WebAssembly.instantiate() and other similar methods."
+    },
+    {
+      "name": "'unsafe-hashes'",
+      "regex": "^'unsafe-hashes'$",
+      "description": "Allows the use of inline event handlers (like onclick) if their content matches a trusted hash."
+    },
+    {
+      "name": "blob:",
+      "regex": "^blob:$",
+      "description": "Allows loading resources from blob: URLs (e.g., created with URL.createObjectURL)."
+    },
+    {
+      "name": "data:",
+      "regex": "^data:$",
+      "description": "Allows loading resources from data: URLs (e.g., base64-encoded images)."
+    },
+    {
+      "name": "https:",
+      "regex": "^https:$",
+      "description": "Allows loading resources from any HTTPS origin."
+    },
+    {
+      "name": "http:",
+      "regex": "^http:$",
+      "description": "Allows loading resources from any HTTP origin."
+    },
+    {
+      "name": "nonce-",
+      "regex": "^'nonce-[A-Za-z0-9+/_-]+={0,2}'$",
+      "description": "Allows a specific inline script or style marked with a cryptographic 'nonce' (number used once)."
+    },
+    {
+      "name": "hash-",
+      "regex": "^'sha(?:256|384|512)-[A-Za-z0-9+/_-]+={0,2}'$",
+      "description": "Allows a specific inline script or style whose content matches this cryptographic hash."
+    },
+    {
+      "name": "URL",
+      "regex": "^(?:https?:)?//",
+      "description": "Allows loading resources from this specific domain or host."
+    },
+    {
+      "name": "'none'",
+      "regex": "^'none'$",
+      "description": "Prevents loading any resources of this type."
+    }
+  ]
+}

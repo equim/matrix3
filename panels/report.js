@@ -8,8 +8,36 @@ import { MessageTypes } from '/include/commands.js'
 let RulesManager = sidepanel.RulesManager;
 let options = await Options.get();
 
+// Helpful hints and tooltips.
+let helpData = { sources: [], directives: {}, sandbox: {} };
+
+try {
+    const [srcs, dirs, sbx] = await Promise.all([
+        fetch(chrome.runtime.getURL('help/sources.json')).then(r => r.json()),
+        fetch(chrome.runtime.getURL('help/directives.json')).then(r => r.json()),
+        fetch(chrome.runtime.getURL('help/sandbox.json')).then(r => r.json())
+    ]);
+    helpData.sources = srcs.sources;
+    helpData.directives = dirs.directives;
+    helpData.sandbox = sbx.sandbox;
+} catch (e) {
+    console.warn("report", "failed to load help data", e);
+}
+
 const directivesTable = document.querySelector("table#sources")
 const sandboxTable = document.querySelector("table#sandbox")
+
+// Attach tooltips to the static sandbox checkboxes
+function populateSandboxTooltips() {
+    let features = document.querySelectorAll("td input.sandbox");
+    for (let box of features) {
+        if (helpData.sandbox[box.id]) {
+            box.title = helpData.sandbox[box.id];
+        }
+    }
+}
+populateSandboxTooltips();
+
 const originList = document.querySelector("select#frames")
 const headerList = document.querySelector("textarea#servercsp")
 
@@ -240,6 +268,18 @@ function addSourceCheckboxRow(source, container = directivesTable.tBodies[0])
         box.type = "checkbox";
         box.checked = false;
         box.className = "rule";
+
+        // Add any hint data we have for this combination.
+        let sourceHelp = helpData.sources.find(h => new RegExp(h.regex).test(source));
+        let directiveHelp = helpData.directives[cols[i]];
+
+        if (directiveHelp)
+            box.title += `${cols[i]}: ${directiveHelp}`;
+        if (directiveHelp && sourceHelp)
+            box.title += `\n\n`;
+        if (sourceHelp && directiveHelp)
+            box.title += sourceHelp.description;
+
         if (colNodes[i].classList.contains("advanced"))
             cell.classList.add("advanced");
         cell.appendChild(box);
