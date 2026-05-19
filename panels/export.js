@@ -40,19 +40,7 @@ loadElement.addEventListener("click", async () => {
         return;
     }
 
-    // Wipe before restoring so we don't accumulate orphans.
-    await RulesManager.resetAllRules();
-
-    if (blob.session?.length)
-        await chrome.declarativeNetRequest.updateSessionRules({
-            removeRuleIds: [],
-            addRules: blob.session,
-        });
-    if (blob.dynamic?.length)
-        await chrome.declarativeNetRequest.updateDynamicRules({
-            removeRuleIds: [],
-            addRules: blob.dynamic,
-        });
+    await RulesManager.replaceAllRules(blob.session ?? [], blob.dynamic ?? []);
 
     if (blob.options) {
         Object.assign(options, blob.options);
@@ -66,8 +54,7 @@ loadElement.addEventListener("click", async () => {
             blob.enabledRulesets.filter(id => id !== "base")
         );
 
-    // applyOptions re-inits RulesManager (so the #id counter catches up to
-    // any imported rule ids) and re-applies the defaultpolicy ruleset set.
+    // applyOptions re-applies the defaultpolicy ruleset and the advanced class.
     await sidepanel.applyOptions();
     await refreshExport();
 });
