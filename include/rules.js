@@ -232,19 +232,24 @@ export default class Rules {
         return this.#rules.get(hostName)?.dynamic;
     }
 
-    // Empty template rule seeded with the active default ruleset's policy.
-    async getEmptyRule(hostName) {
-        let rule = new Rule();
+    // Policy composed from the currently enabled (non-required) static rulesets.
+    async getDefaultPolicy() {
         let policy = new Policy();
         let enabledRulesets = this.#staticRulesets.filter(r => r.enabled && !r.isRequired());
 
         for (let ruleset of enabledRulesets) {
              const p = await ruleset.toPolicy();
-             // Copy all directives from each enabled ruleset.
              for (const [dir, sources] of Object.entries(p.directives)) {
                 policy.directives[dir] = [...sources];
              }
         }
+        return policy;
+    }
+
+    // Empty template rule seeded with the active default ruleset's policy.
+    async getEmptyRule(hostName) {
+        let rule = new Rule();
+        let policy = await this.getDefaultPolicy();
 
         rule.id = this.#getNextId();
         rule.priority = 2;

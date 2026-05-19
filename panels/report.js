@@ -378,16 +378,18 @@ function collapseDirective(directive)
 async function getCurrentRules(hostName, container)
 {
     let rule = RulesManager.getHostRule(hostName);
+    let policy;
     let className;
 
     if (rule?.isSession)
         className = "session";
     else if (rule)
         className = "dynamic";
-    else
-        rule = await RulesManager.getEmptyRule(hostName);
 
-    let policy = rule.policy;
+    if (rule)
+        policy = rule.policy;
+    else
+        policy = await RulesManager.getDefaultPolicy();
 
     for (let directive in policy.directives) {
         let sources = policy.directives[directive];
@@ -426,7 +428,7 @@ async function setCurrentRules(hostName)
 {
     let srcs = utils.getTableRowProps(directivesTable, "textContent");
     let dirs = utils.getTableColProps(directivesTable, "id");
-    let policy = (await RulesManager.getEmptyRule(hostName)).toPolicy();
+    let policy = await RulesManager.getDefaultPolicy();
 
     // Drop the row-title column id.
     dirs.shift();
