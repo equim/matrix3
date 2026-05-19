@@ -50,7 +50,7 @@ function clearBadge(tabId) {
 chrome.webRequest.onHeadersReceived.addListener(async (details) => {
         let csp = details.responseHeaders.filter(hdr => hdr.name.toLowerCase() == "content-security-policy");
 
-        console.debug("hdr", details.tabId, details.documentLifecycle, details.frameType, details.url, details);
+        console.debug("service", "onheadersreceived", details.tabId, details.url, details);
 
         // Ignore requests not associated with a tab, or not part of the active lifecycle (e.g. prerendering).
         if (details.tabId === -1 || details.documentLifecycle !== 'active')
