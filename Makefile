@@ -6,7 +6,7 @@ all: matrix3_32.png matrix3_64.png matrix3_128.png
 dist: matrix3-$(VERSION).zip
 
 %.zip: all
-	git ls-files --exclude-standard | zip $@ -@ -x "tools/*" ".gitignore" "*/.gitignore" "Makefile" "*/Makefile"
+	git ls-files --exclude-standard | zip $@ -@ -x "tools/*" ".gitignore" "*/.gitignore" "Makefile" "*/Makefile" "cws/*"
 
 %_32.png: %.svg
 	magick -size 32x32 $^ png:$@
