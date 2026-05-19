@@ -65,13 +65,19 @@ function applyFilter() {
 document.getElementById('filter').addEventListener('input', applyFilter);
 
 document.getElementById('apply').addEventListener("click", async () => {
-    for (let row of sessionTbl.rows)
-        if (!row.cells[0].firstChild.checked)
-            await RulesManager.delSessionRule({id: parseInt(row.cells[1].innerText)});
+    let rules = RulesManager.getRules();
+    let ruleFromId = id => rules.find(r => r.id === id);
 
-    for (let row of dynamicTbl.rows)
-        if (!row.cells[0].firstChild.checked)
-            await RulesManager.delDynamicRule({id: parseInt(row.cells[1].innerText)});
+    for (let row of sessionTbl.rows) {
+        if (row.cells[0].firstChild.checked) continue;
+        let rule = ruleFromId(parseInt(row.cells[1].innerText));
+        if (rule) await RulesManager.delSessionRule(rule);
+    }
+    for (let row of dynamicTbl.rows) {
+        if (row.cells[0].firstChild.checked) continue;
+        let rule = ruleFromId(parseInt(row.cells[1].innerText));
+        if (rule) await RulesManager.delDynamicRule(rule);
+    }
 });
 
 document.getElementById('query').addEventListener("click", async () => {

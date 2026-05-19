@@ -70,25 +70,6 @@ class Ruleset {
         this.url      = chrome.runtime.getURL(resource.path);
     }
 
-    async enableRuleset() {
-        await chrome.declarativeNetRequest.updateEnabledRulesets({
-            enableRulesetIds: [ this.id ],
-        });
-        return this.enabled = await this.isEnabled();
-    }
-
-    async disableRuleset() {
-        // Don't allow required rulesets to be disabled.
-        if (this.isRequired())
-            return false;
-
-        await chrome.declarativeNetRequest.updateEnabledRulesets({
-            disableRulesetIds: [ this.id ],
-        });
-
-        return this.enabled = ! await this.isEnabled();
-    }
-
     async isEnabled() {
         let rulesets = await chrome.declarativeNetRequest.getEnabledRulesets();
         this.enabled = rulesets.includes(this.id);
@@ -353,6 +334,23 @@ export default class Rules {
         this.#rules.clear();
     }
 
+    // Bulk swap (Import). Re-inits since imported ids are arbitrary.
+    async replaceAllRules(session = [], dynamic = []) {
+        let oldSession = await chrome.declarativeNetRequest.getSessionRules();
+        let oldDynamic = await chrome.declarativeNetRequest.getDynamicRules();
+
+        await this.#updateSessionRules({
+            removeRuleIds: oldSession.map(r => r.id),
+            addRules: session,
+        });
+        await this.#updateDynamicRules({
+            removeRuleIds: oldDynamic.map(r => r.id),
+            addRules: dynamic,
+        });
+
+        await this.init();
+    }
+
     // Remove every session and dynamic rule for this host.
     async resetHostRules(hostName) {
         let session = this.#findSessionForHost(hostName);
@@ -403,9 +401,9 @@ export default class Rules {
         });
         this.#deleteRule(rule);
         rule.isSession = false;
+        // #setRule overwrites entry.dynamic; an explicit #deleteRule(prev)
+        // afterwards would clobber the rule we just set (same host).
         this.#setRule(rule);
-        if (prev)
-            this.#deleteRule(prev);
     }
 
     // Rule for matching host, preferring session over dynamic.
