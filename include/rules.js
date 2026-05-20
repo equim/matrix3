@@ -297,7 +297,7 @@ export default class Rules {
         let rule = this.#findSessionForHost(hostName);
 
         if (!rule) {
-            console.error("rules", `attempted to abandon non-existant session rule for ${hostName}`);
+            console.error("rules", `attempted to abandon non-existent session rule for ${hostName}`);
             return;
         }
 
