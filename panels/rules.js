@@ -52,7 +52,11 @@ async function updateRuleTables() {
 function applyFilter() {
     const filterText = document.getElementById('filter').value.toLowerCase();
     for (let row of document.querySelectorAll('#dynamic tr, #session tr')) {
-        row.style.display = row.innerText.toLowerCase().includes(filterText) ? '' : 'none';
+        if (row.innerText.toLowerCase().includes(filterText)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
     }
 }
 
