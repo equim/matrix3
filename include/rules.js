@@ -304,6 +304,16 @@ export default class Rules {
         await this.delSessionRule(rule);
     }
 
+    async delRule(rule) {
+        if (!rule) {
+            console.debug("rules", `attempted to delete null rule`);
+        } else if (rule.isSession) {
+            await this.delSessionRule(rule);
+        } else {
+            await this.delDynamicRule(rule);
+        }
+    }
+
     async delSessionRule(rule) {
         await this.#updateSessionRules({
             removeRuleIds: [rule.id],

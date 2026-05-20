@@ -22,7 +22,7 @@ async function updateRuleTables() {
         let row = tbl.insertRow(-1);
         let chk = document.createElement("input");
         chk.type = "checkbox";
-        chk.checked = true;
+        chk.checked = false;
         chk.className = "rule";
         row.insertCell(-1).appendChild(chk);
         row.insertCell(-1).innerText = rule.id;
@@ -51,39 +51,30 @@ async function updateRuleTables() {
 
 function applyFilter() {
     const filterText = document.getElementById('filter').value.toLowerCase();
-    const tables = [dynamicTbl, sessionTbl];
-    for (let table of tables) {
-        for (let row of table.rows) {
-            if (row.innerText.toLowerCase().includes(filterText)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        }
+    for (let row of document.querySelectorAll('#dynamic tr, #session tr')) {
+        row.style.display = row.innerText.toLowerCase().includes(filterText) ? '' : 'none';
     }
 }
 
 document.getElementById('filter').addEventListener('input', applyFilter);
 
-document.getElementById('apply').addEventListener("click", async () => {
+document.getElementById('remove').addEventListener("click", async () => {
+    let checked = Array.from(document.querySelectorAll('input.rule:checked:not(:disabled)'));
+
+    // Confirm action if multiple rules are checked.
+    if (checked.length > 5 && !await utils.confirmAction(`Remove ${checked.length} rules?`)) {
+        return;
+    }
+
     let rules = RulesManager.getRules();
     let ruleFromId = id => rules.find(r => r.id === id);
 
-    // Delete any unchecked rules.
-    for (let row of sessionTbl.rows) {
-        if (row.cells[0].firstChild.checked)
-            continue;
-        let rule = ruleFromId(parseInt(row.cells[1].innerText));
-        if (rule)
-            await RulesManager.delSessionRule(rule);
+    for (let chk of checked) {
+        let rule = ruleFromId(parseInt(chk.closest('tr').cells[1].innerText));
+        await RulesManager.delRule(rule);
     }
-    for (let row of dynamicTbl.rows) {
-        if (row.cells[0].firstChild.checked)
-            continue;
-        let rule = ruleFromId(parseInt(row.cells[1].innerText));
-        if (rule)
-            await RulesManager.delDynamicRule(rule);
-    }
+
+    updateRuleTables();
 });
 
 document.getElementById('commit').addEventListener("click", async () => {
