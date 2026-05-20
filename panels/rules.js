@@ -46,6 +46,7 @@ async function updateRuleTables() {
 
     applyFilter();
     document.getElementById('reset').disabled = rules.length === 0;
+    document.getElementById('commit').disabled = !rules.some(r => r.isSession);
 }
 
 function applyFilter() {
@@ -68,23 +69,35 @@ document.getElementById('apply').addEventListener("click", async () => {
     let rules = RulesManager.getRules();
     let ruleFromId = id => rules.find(r => r.id === id);
 
+    // Delete any unchecked rules.
     for (let row of sessionTbl.rows) {
-        if (row.cells[0].firstChild.checked) continue;
+        if (row.cells[0].firstChild.checked)
+            continue;
         let rule = ruleFromId(parseInt(row.cells[1].innerText));
-        if (rule) await RulesManager.delSessionRule(rule);
+        if (rule)
+            await RulesManager.delSessionRule(rule);
     }
     for (let row of dynamicTbl.rows) {
-        if (row.cells[0].firstChild.checked) continue;
+        if (row.cells[0].firstChild.checked)
+            continue;
         let rule = ruleFromId(parseInt(row.cells[1].innerText));
-        if (rule) await RulesManager.delDynamicRule(rule);
+        if (rule)
+            await RulesManager.delDynamicRule(rule);
     }
 });
 
-document.getElementById('query').addEventListener("click", async () => {
-    await RulesManager.init();
+document.getElementById('commit').addEventListener("click", async () => {
+    // Promote any checked sesion rules.
+    for (let row of sessionTbl.rows) {
+        if (!row.cells[0].firstChild.checked)
+            continue;
+        await RulesManager.commitSessionRulesForHost(row.cells[2].innerText);
+    }
     updateRuleTables();
 });
 document.getElementById('reset').addEventListener("click", async () => {
+    if (!await utils.confirmAction("Remove all session and dynamic rules?"))
+        return;
     await RulesManager.resetAllRules();
     updateRuleTables();
 });
