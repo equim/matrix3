@@ -23,8 +23,7 @@ function compareRowLabels(a, b) {
 export function sortTable(table, compare = compareRowLabels) {
     let rows = Array.from(table.tBodies[0].rows);
     rows.sort(compare);
-    for (let row of rows)
-        row.parentNode.appendChild(row);
+    table.tBodies[0].append(...rows);
 }
 
 // Return a property from each header cell, e.g. ('id') for column IDs or
@@ -46,19 +45,15 @@ export function findTableRow(table, label) {
 
 // Set the checked state on every input in `list` (NodeList or any iterable).
 export function setCheckboxes(list, state) {
-    for (let box of list)
-        box.checked = state;
+    Array.from(list).forEach(box => box.checked = state);
 }
 
 // Enforce single-checked semantics across a checkbox group.
 export function checkboxMutex(group, target) {
     let boxes = Array.from(group);
 
-    if (!target.checked)
-        return;
-    if (!boxes.includes(target))
+    if (!target.checked || !boxes.includes(target))
         return;
 
-    for (let box of boxes)
-        if (box !== target) box.checked = false;
+    boxes.filter(box => box !== target).forEach(box => box.checked = false);
 }

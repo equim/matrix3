@@ -151,11 +151,8 @@ export default class Rules {
 
         this.#rules = new Map();
 
-        for (let r of dynamic)
-            this.#setRule(new Rule(r));
-
-        for (let r of session)
-            this.#setRule(new Rule(r, true));
+        dynamic.forEach(r => this.#setRule(new Rule(r)));
+        session.forEach(r => this.#setRule(new Rule(r, true)));
 
         this.#staticRulesets = [];
 

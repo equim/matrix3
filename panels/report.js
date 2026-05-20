@@ -8,7 +8,7 @@ import { MessageTypes } from '/include/commands.js'
 let RulesManager = sidepanel.RulesManager;
 let options = await Options.get();
 
-// Helpful hints and tooltips.
+// Load any helpful hints and tooltips we have.
 let helpData = { sources: [], directives: {}, sandbox: {} };
 
 try {
@@ -20,6 +20,11 @@ try {
     helpData.sources = srcs.sources;
     helpData.directives = dirs.directives;
     helpData.sandbox = sbx.sandbox;
+
+    // Attach tooltips to the static sandbox checkboxes.
+    document.querySelectorAll("td input.sandbox").forEach(box => {
+        box.title = helpData.sandbox[box.id] ?? "";
+    });
 } catch (e) {
     console.warn("report", "failed to load help data", e);
 }
@@ -27,58 +32,62 @@ try {
 const directivesTable = document.querySelector("table#sources")
 const sandboxTable = document.querySelector("table#sandbox")
 
-// Attach tooltips to the static sandbox checkboxes
-function populateSandboxTooltips() {
-    let features = document.querySelectorAll("td input.sandbox");
-    for (let box of features) {
-        if (helpData.sandbox[box.id]) {
-            box.title = helpData.sandbox[box.id];
-        }
-    }
-}
-populateSandboxTooltips();
-
 const originList = document.querySelector("select#frames")
 const headerList = document.querySelector("textarea#servercsp")
 
 let currentServerPolicies = [];
 
 // User's last manual origin selection. Sticks across reloads even if a partial
-// frame list temporarily falls back to the top domain; cleared on tab switch.
+// frame list temporarily falls back to the top domain.
 let userOrigin;
 
 // Recognises the prefix of a CSP nonce-source or hash-source value.
 const kNonceOrHashPrefix = /^'(?:nonce-|sha(?:256|384|512)-)/;
 
-document.getElementById('commit').addEventListener("click", async () => {
-    await RulesManager.commitSessionRulesForHost(originList.value);
+// Matches the base64 value suffix defined by the CSP3 grammar.
+const kNonceOrHashFull = new RegExp(kNonceOrHashPrefix.source + /[A-Za-z0-9+/_-]+={0,2}'$/.source);
+
+// Handle the main report buttons.
+document.body.addEventListener('click', async (e) => {
+    const host = originList.value;
+
+    if (e.target.tagName !== 'BUTTON') return;
+
+    switch (e.target.id) {
+        case 'commit':
+            await RulesManager.commitSessionRulesForHost(host);
+            break;
+        case 'reset':
+            if (!await utils.confirmAction(`Remove all session and dynamic rules for ${host}?`)) return;
+            await RulesManager.resetHostRules(host);
+            break;
+        case 'abandon':
+            if (!await utils.confirmAction(`Discard session changes for ${host}?`)) return;
+            await RulesManager.abandonSessionRulesForHost(host);
+            break;
+        case 'uncommit':
+            await RulesManager.uncommitDynamicRulesForHost(host);
+            break;
+        case 'reload':
+            await chrome.tabs.reload(undefined, { bypassCache: e.shiftKey });
+            return;
+        case 'unblock':
+            unblockReportedViolations();
+            return;
+        default:
+            return;
+    }
+
     updateReport();
 });
-document.getElementById('reset').addEventListener("click", async () => {
-    if (!await utils.confirmAction(`Remove all session and dynamic rules for ${originList.value}?`))
-        return;
-    await RulesManager.resetHostRules(originList.value);
-    updateReport();
-});
-document.getElementById('reload').addEventListener("click", async (event) => {
-    await chrome.tabs.reload(undefined, { bypassCache: event.shiftKey });
-});
-document.getElementById('abandon').addEventListener("click", async () => {
-    if (!await utils.confirmAction(`Discard session changes for ${originList.value}?`))
-        return;
-    await RulesManager.abandonSessionRulesForHost(originList.value);
-    updateReport();
-});
-document.getElementById('uncommit').addEventListener("click", async () => {
-    await RulesManager.uncommitDynamicRulesForHost(originList.value);
-    updateReport();
-});
-document.getElementById('unblock').addEventListener("click", () => unblockReportedViolations());
+
+// The server policy buttons.
 document.getElementById('accept').addEventListener("click", () => {
     utils.setCheckboxes(directivesTable.querySelectorAll("td input[type=checkbox]"), false);
     resetSandboxDirectives();
     applyServerPolicy();
 });
+
 document.getElementById('merge').addEventListener("click", () => applyServerPolicy());
 
 // Transform a server-supplied source for import. Returns null to skip.
@@ -98,14 +107,12 @@ function applyServerSources() {
     let columns = utils.getTableColProps(directivesTable, "id");
 
     for (let policy of currentServerPolicies) {
-        for (let directive in policy.directives) {
+        for (let [directive, sources] of Object.entries(policy.directives)) {
             let dir = collapseDirective(directive);
 
-            if (!columns.includes(dir))
-                continue;
-
-            for (let src of policy.directives[directive])
-                setSourceCheckboxState(importableSource(src), dir, true);
+            if (columns.includes(dir)) {
+                sources.forEach(src => setSourceCheckboxState(importableSource(src), dir, true));
+            }
         }
     }
 
@@ -135,11 +142,7 @@ function applyServerSandbox() {
 }
 
 function unblockReportedViolations() {
-    let boxes = directivesTable.querySelectorAll("input.violation");
-
-    for (let box of boxes)
-        box.checked = true;
-
+    directivesTable.querySelectorAll("input.violation").forEach(b => b.checked = true);
     setCurrentRules(originList.value);
 }
 // Apply (or remove) the selected group's origins to default-src, script-src,
@@ -465,23 +468,24 @@ async function setCurrentRules(hostName)
     }
 
     // Reset before write.
-    for (let dir of dirs)
-        delete policy.directives[dir];
+    dirs.forEach(dir => delete policy.directives[dir]);
 
     for (let dir of dirs) {
-        for (let src of srcs) {
-            if (!getSourceCheckboxState(src, dir))
-                continue;
-            policy.directives[dir] ??= [];
-            if (policy.directives[dir].includes(src))
-                continue;
-            if (policy.directives[dir].includes("'none'"))
-                continue;
-            if (src == "'none'") {
-                policy.directives[dir] = ["'none'"];
-                continue;
+        let activeSources = srcs.filter(src => getSourceCheckboxState(src, dir));
+
+        if (activeSources.length === 0)
+            continue;
+
+        if (activeSources.includes("'none'")) {
+            policy.directives[dir] = ["'none'"];
+            continue;
+        }
+
+        policy.directives[dir] ??= [];
+        for (let src of activeSources) {
+            if (!policy.directives[dir].includes(src)) {
+                policy.directives[dir].push(src);
             }
-            policy.directives[dir].push(src);
         }
     }
 
@@ -556,16 +560,12 @@ async function populateServerPolicy() {
     // Surface per-page nonce-* / hash-* sources from the server CSP so the
     // user can toggle them. Regex matches the CSP3 grammar exactly so we
     // reject anything with garbage characters.
-    for (let policy of currentServerPolicies) {
-        for (let dir in policy.directives) {
-            for (let src of policy.directives[dir]) {
-                if (/^'(?:nonce-|sha(?:256|384|512)-)[A-Za-z0-9+/_-]+={0,2}'$/.test(src))
-                    sources.add(src);
-            }
-        }
-    }
-    for (let src of sources)
-        addSourceCheckboxRow(src);
+    currentServerPolicies
+        .flatMap(p => Object.values(p.directives).flat())
+        .filter(src => kNonceOrHashFull.test(src))
+        .forEach(src => sources.add(src));
+
+    sources.forEach(src => addSourceCheckboxRow(src));
 
     utils.sortTable(directivesTable, compareSourceRows);
 }
@@ -647,16 +647,14 @@ async function refreshTable(domain) {
 
 function populateTrustGroups() {
     let select = document.getElementById('trustgroup');
-    let names = Object.keys(options.groups ?? {});
+    let names = Object.keys(options.groups ?? {}).filter(name => name !== 'Ignore');
 
-    select.replaceChildren();
-
-    for (let name of names) {
+    select.replaceChildren(...names.map(name => {
         let opt = document.createElement('option');
         opt.textContent = name;
         opt.value = name;
-        select.add(opt);
-    }
+        return opt;
+    }));
 }
 
 async function updateReport() {
@@ -664,6 +662,7 @@ async function updateReport() {
     await populateOriginList(userOrigin ?? originList.value);
     await refreshTable(originList.value);
     populateServerPolicy();
+    populateTrustGroups();
     updateOriginScopeState();
 
     // If the user has opened the report, clear any icon badge.
@@ -706,6 +705,7 @@ async function handleNotifyUpdate(msg) {
     }
 
     populateServerPolicy();
+    populateTrustGroups();
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
@@ -720,5 +720,6 @@ chrome.runtime.onMessage.addListener((msg) => {
     }
 });
 
+Options.addUpdateListener(() => populateTrustGroups());
 populateTrustGroups();
 updateReport();

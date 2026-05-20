@@ -33,8 +33,8 @@ export default class Policy {
         // Reset directives to a null-prototype object to prevent pollution.
         this.directives = Object.create(null);
 
-        for (let i = 0; i < headerTokens.length; i++) {
-            const directive = headerTokens[i].trim().split(/\s+/);
+        for (let token of headerTokens) {
+            const directive = token.trim().split(/\s+/);
             const directiveName = directive.shift().toLowerCase();
 
             if (!directiveName)
