@@ -4,6 +4,7 @@ const kDefaultOptions = {
     defaultpolicy: 0,
     advanced: false,
     badges: false,
+    confirmactions: false,
     defaultscope: "domain",
 };
 

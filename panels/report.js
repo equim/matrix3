@@ -55,6 +55,8 @@ document.getElementById('commit').addEventListener("click", async () => {
     updateReport();
 });
 document.getElementById('reset').addEventListener("click", async () => {
+    if (!await utils.confirmAction(`Remove all session and dynamic rules for ${originList.value}?`))
+        return;
     await RulesManager.resetHostRules(originList.value);
     updateReport();
 });
@@ -62,6 +64,8 @@ document.getElementById('reload').addEventListener("click", async (event) => {
     await chrome.tabs.reload(undefined, { bypassCache: event.shiftKey });
 });
 document.getElementById('abandon').addEventListener("click", async () => {
+    if (!await utils.confirmAction(`Discard session changes for ${originList.value}?`))
+        return;
     await RulesManager.abandonSessionRulesForHost(originList.value);
     updateReport();
 });

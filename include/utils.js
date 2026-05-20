@@ -1,5 +1,16 @@
+import Options from '/include/options.js'
+
 export function clearTable(table) {
     table.tBodies[0]?.replaceChildren();
+}
+
+// Prompt the user when configured to prompt. Returns true when the action
+// should go ahead.
+export async function confirmAction(message) {
+    let options = await Options.get();
+    if (!options.confirmactions)
+        return true;
+    return confirm(message);
 }
 
 // Default comparator: alphabetical by the first cell's text content.

@@ -1,3 +1,4 @@
+import * as utils from '/include/utils.js'
 import * as sidepanel from '/include/sidepanel.js'
 import Options from '/include/options.js'
 
@@ -39,6 +40,9 @@ loadElement.addEventListener("click", async () => {
         alert("Invalid JSON: " + e.message);
         return;
     }
+
+    if (!await utils.confirmAction("Replace all current rules with imported ones?"))
+        return;
 
     await RulesManager.replaceAllRules(blob.session ?? [], blob.dynamic ?? []);
 
