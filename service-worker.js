@@ -35,15 +35,15 @@ async function setBadge(tabId, text, color) {
     contexts = await chrome.runtime.getContexts({
         contextTypes: ["SIDE_PANEL"],
         tabIds: [tabId]
-    });
-    if (contexts.length)
+    }).catch(() => []);
+    if (contexts?.length)
         return;
-    chrome.action.setBadgeText({ text, tabId });
-    chrome.action.setBadgeBackgroundColor({ color, tabId });
+    chrome.action.setBadgeText({ text, tabId }).catch(() => {});
+    chrome.action.setBadgeBackgroundColor({ color, tabId }).catch(() => {});
 }
 
 function clearBadge(tabId) {
-    chrome.action.setBadgeText({ text: '', tabId });
+    chrome.action.setBadgeText({ text: '', tabId }).catch(() => {});
 }
 
 // Track what security policy hosts request, and make it available to users.
