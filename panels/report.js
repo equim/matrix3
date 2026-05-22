@@ -47,7 +47,7 @@ const kNonceOrHashPrefix = /^'(?:nonce-|sha(?:256|384|512)-)/;
 // Matches the base64 value suffix defined by the CSP3 grammar.
 const kNonceOrHashFull = new RegExp(kNonceOrHashPrefix.source + /[A-Za-z0-9+/_-]+={0,2}'$/.source);
 
-// Find all HTTPS origins currently loaded in the tab that fall under the given scope.
+// Find all origins currently loaded in the tab that fall under the given scope.
 async function getOriginsInScope(scope) {
     let tab = await sidepanel.getActiveTab();
     let frames = await chrome.webNavigation.getAllFrames({tabId: tab.id}) ?? [];
@@ -55,7 +55,7 @@ async function getOriginsInScope(scope) {
 
     for (let f of frames) {
         let u = new URL(f.url);
-        if (u.protocol === 'https:' && await psl.getScopedDomain(u.hostname) === scope) {
+        if (await psl.getScopedDomain(u.hostname) === scope) {
             origins.add(u.origin);
         }
     }
