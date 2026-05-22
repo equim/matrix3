@@ -52,5 +52,30 @@ fetch('https://api.github.com/')
   .then(() => document.getElementById('fetch-out').textContent = 'fetch ok')
   .catch(() => document.getElementById('fetch-out').textContent = 'fetch blocked');
 </script>
+
+<hr>
+
+<h2>Service Worker</h2>
+<p><b>Interceptor Status:</b> <!-- SW_STATUS --></p>
+<div id="sw-out">Checking service worker status...</div>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(reg => {
+      document.getElementById('sw-out').textContent = 'Registration successful, scope: ' + reg.scope;
+      console.log('SW: registered', reg);
+    })
+    .catch(err => {
+      document.getElementById('sw-out').textContent = 'Registration failed: ' + err;
+      console.warn('SW: registration failed', err);
+    });
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    console.log('SW: Controller changed');
+  });
+} else {
+  document.getElementById('sw-out').textContent = 'Service workers not supported in this browser.';
+}
+</script>
 </body>
 </html>
