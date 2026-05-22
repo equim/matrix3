@@ -47,6 +47,21 @@ const kNonceOrHashPrefix = /^'(?:nonce-|sha(?:256|384|512)-)/;
 // Matches the base64 value suffix defined by the CSP3 grammar.
 const kNonceOrHashFull = new RegExp(kNonceOrHashPrefix.source + /[A-Za-z0-9+/_-]+={0,2}'$/.source);
 
+// Find all HTTPS origins currently loaded in the tab that fall under the given scope.
+async function getOriginsInScope(scope) {
+    let tab = await sidepanel.getActiveTab();
+    let frames = await chrome.webNavigation.getAllFrames({tabId: tab.id}) ?? [];
+    let origins = new Set([`https://${scope}`]);
+
+    for (let f of frames) {
+        let u = new URL(f.url);
+        if (u.protocol === 'https:' && await psl.getScopedDomain(u.hostname) === scope) {
+            origins.add(u.origin);
+        }
+    }
+    return Array.from(origins);
+}
+
 // Handle the main report buttons.
 document.body.addEventListener('click', async (e) => {
     const host = originList.value;
@@ -60,6 +75,11 @@ document.body.addEventListener('click', async (e) => {
         case 'reset':
             if (!await utils.confirmAction(`Remove all session and dynamic rules for ${host}?`)) return;
             await RulesManager.resetHostRules(host);
+            if (options?.unregistersw) {
+                chrome.browsingData.removeServiceWorkers(
+                    { origins: await getOriginsInScope(host) }
+                ).catch(e => console.warn("report", `failed to remove ${host} service workers`, e));
+            }
             break;
         case 'abandon':
             if (!await utils.confirmAction(`Discard session changes for ${host}?`)) return;

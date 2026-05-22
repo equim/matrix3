@@ -87,5 +87,13 @@ whenever a CSP violation is reported for the active tab, so you know at a
 glance there is something to look at on the <b>Report</b> page. The badge
 clears on the next navigation.
 </p>
+<h3>Unregister Service Workers on Reset</h3>
+<p>
+If a site registers a service worker while permissive rules are active, that
+worker might cache resources and serve them later, effectively bypassing newly
+restrictive rules. Enabling this option will automatically unregister service
+workers for the selected host on the active page when you click <b>Reset</b>,
+ensuring a clean slate for the next page load.
+</p>
 </body>
 </html>

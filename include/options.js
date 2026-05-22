@@ -5,6 +5,7 @@ const kDefaultOptions = {
     advanced: false,
     badges: false,
     confirmactions: false,
+    unregistersw: false,
     defaultscope: "domain",
 };
 
