@@ -17,6 +17,8 @@ familiarity with the CSP3 specification is a bonus. It is currently just a proto
 
 Install the latest stable version via the [Chrome Web Store](https://chromewebstore.google.com/detail/matrix%C2%B3/hpdmcogknijiaifojoidaffonhefmkgo).
 
+For the latest development version, follow these steps:
+
 1. Clone or download this repository.
 2. Open `chrome://extensions`.
 3. Enable **Developer mode**, and click **Load Unpacked**.
