@@ -12,7 +12,10 @@ features for each site.
 This extension basically just provides an interface to `Content-Security-Policy`, so
 familiarity with the CSP3 specification is a bonus. It is currently just a prototype.
 
+
 ## Installation
+
+Install the latest stable version via the [Chrome Web Store](https://chromewebstore.google.com/detail/matrix%C2%B3/hpdmcogknijiaifojoidaffonhefmkgo).
 
 1. Clone or download this repository.
 2. Open `chrome://extensions`.
