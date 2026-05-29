@@ -357,6 +357,10 @@ export default class Rules {
         session ??= oldSession;
         dynamic ??= oldDynamic;
 
+        // Snapshot the live ids before reassigning -- a preserved bucket aliases the old array.
+        let removeSessionIds = oldSession.map(r => r.id);
+        let removeDynamicIds = oldDynamic.map(r => r.id);
+
         // Reset our internal ID counter and re-assign IDs to all incoming rules
         // to guarantee a collision-free set for the atomic swap.
         this.#id = 0;
@@ -364,11 +368,11 @@ export default class Rules {
         dynamic.forEach(r => r.id = this.#getNextId());
 
         await this.#updateSessionRules({
-            removeRuleIds: oldSession.map(r => r.id),
+            removeRuleIds: removeSessionIds,
             addRules: session,
         });
         await this.#updateDynamicRules({
-            removeRuleIds: oldDynamic.map(r => r.id),
+            removeRuleIds: removeDynamicIds,
             addRules: dynamic,
         });
 
@@ -381,6 +385,7 @@ export default class Rules {
     // the representation simple.
     async pushToCloud() {
         let dynamic = this.getRules().filter(r => !r.isSession);
+        let storage = await chrome.storage.sync.get(null);
         let toSet = {};
 
         for (let rule of dynamic) {
@@ -390,6 +395,15 @@ export default class Rules {
             };
         }
 
+        // Push clobbers, so drop any cloud rule the local set no longer has.
+        let stale = [];
+
+        for (let key of Object.keys(storage)) {
+            if (key.startsWith("rule:") && !(key in toSet))
+                stale.push(key);
+        }
+
+        await chrome.storage.sync.remove(stale);
         await chrome.storage.sync.set(toSet);
         return dynamic.length;
     }
