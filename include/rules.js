@@ -367,16 +367,19 @@ export default class Rules {
         session.forEach(r => r.id = this.#getNextId());
         dynamic.forEach(r => r.id = this.#getNextId());
 
-        await this.#updateSessionRules({
-            removeRuleIds: removeSessionIds,
-            addRules: session,
-        });
-        await this.#updateDynamicRules({
-            removeRuleIds: removeDynamicIds,
-            addRules: dynamic,
-        });
-
-        await this.init();
+        try {
+            await this.#updateSessionRules({
+                removeRuleIds: removeSessionIds,
+                addRules: session,
+            });
+            await this.#updateDynamicRules({
+                removeRuleIds: removeDynamicIds,
+                addRules: dynamic,
+            });
+        } finally {
+            // Refresh the mirror even on a partial failure (e.g. dNR rule cap).
+            await this.init();
+        }
     }
 
     // These two routines don't actually do any cloud stuff, chrome syncs the
@@ -389,9 +392,14 @@ export default class Rules {
         let toSet = {};
 
         for (let rule of dynamic) {
+            let policy = rule.policy;
+
+            // report-uri is per-device; pull re-derives it, so don't store it.
+            delete policy.directives["report-uri"];
+
             toSet[`rule:${rule.host}`] = {
                 priority: rule.priority,
-                policy: rule.policy.toHeader()
+                policy: policy.toHeader()
             };
         }
 
@@ -419,11 +427,15 @@ export default class Rules {
 
         for (let host of cloudRules) {
             let rule = new Rule();
+            let policy = new Policy().fromHeader(storage[host].policy);
+
+            // Re-derive report-uri for this device rather than trusting storage.
+            policy.directives["report-uri"] = [chrome.runtime.getURL("csp-report")];
 
             // host is the storage key, so remove the "rule:" prefix.
             rule.host = host.slice(5);
             rule.priority = storage[host].priority;
-            rule.fromPolicyString(storage[host].policy);
+            rule.fromPolicy(policy);
             mergedMap.set(rule.host, rule.toRule());
         }
 
