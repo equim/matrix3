@@ -108,10 +108,6 @@ export default class ViolationTracker {
         this.#getOrCreateTab(tabId).documents.add(documentId);
     }
 
-    removeDocument(tabId, documentId) {
-        this.#tabs.get(tabId)?.documents.delete(documentId);
-    }
-
     hasDocument(tabId, documentId) {
         return this.#tabs.get(tabId)?.documents.has(documentId) ?? false;
     }
