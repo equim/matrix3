@@ -1,6 +1,11 @@
 import Policy from '/include/policy.js'
 import { MessageTypes } from '/include/commands.js'
 
+// dNR priorities are ordinal: session > dynamic > static.
+const kStaticPriority  = 1;
+const kDynamicPriority = 2;
+const kSessionPriority = 3;
+
 // A declarativeNetRequest rule (session or dynamic).
 class Rule {
     id;
@@ -263,7 +268,7 @@ export default class Rules {
         let policy = await this.getDefaultPolicy();
 
         rule.id = this.#getNextId();
-        rule.priority = 2;
+        rule.priority = kDynamicPriority;
         rule.fromPolicy(policy);
         if (hostName) {
             rule.host = hostName;
@@ -397,10 +402,7 @@ export default class Rules {
             // report-uri is per-device; pull re-derives it, so don't store it.
             delete policy.directives["report-uri"];
 
-            toSet[`rule:${rule.host}`] = {
-                priority: rule.priority,
-                policy: policy.toHeader()
-            };
+            toSet[`rule:${rule.host}`] = { policy: policy.toHeader() };
         }
 
         // Push clobbers, so drop any cloud rule the local set no longer has.
@@ -434,7 +436,7 @@ export default class Rules {
 
             // host is the storage key, so remove the "rule:" prefix.
             rule.host = host.slice(5);
-            rule.priority = storage[host].priority;
+            rule.priority = kDynamicPriority;
             rule.fromPolicy(policy);
             mergedMap.set(rule.host, rule.toRule());
         }
