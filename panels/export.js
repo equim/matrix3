@@ -6,6 +6,8 @@ const RulesManager = sidepanel.RulesManager;
 const outputElement = document.getElementById("export");
 const loadElement = document.getElementById("import");
 const downloadElement = document.getElementById("download");
+const pushElement = document.getElementById("push");
+const pullElement = document.getElementById("pull");
 const options = await Options.get();
 
 async function buildExport() {
@@ -30,6 +32,21 @@ downloadElement.addEventListener("click", () => {
     link.download = "matrix3.json";
     link.click();
     URL.revokeObjectURL(url);
+});
+
+pushElement.addEventListener("click", async () => {
+    if (!await utils.confirmAction("Push dynamic rules into cloud storage?"))
+        return;
+    let count = await RulesManager.pushToCloud();
+    console.log(`Successfully pushed ${count} dynamic rules to cloud.`);
+});
+
+pullElement.addEventListener("click", async () => {
+    if (!await utils.confirmAction("Pull dynamic rules from cloud storage?"))
+        return;
+    let count = await RulesManager.pullFromCloud();
+    console.log(`Successfully pulled ${count} dynamic rules from cloud.`);
+    await refreshExport();
 });
 
 loadElement.addEventListener("click", async () => {
