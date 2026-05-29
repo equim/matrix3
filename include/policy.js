@@ -27,7 +27,7 @@ export default class Policy {
     }
 
     // Initialize from a HTTP header.
-    fromHeader(headerString) {
+    fromHeader(headerString = "") {
         let headerTokens = headerString.trim().split(';').filter(f => f.length);
 
         // Reset directives to a null-prototype object to prevent pollution.
