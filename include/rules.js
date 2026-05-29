@@ -61,13 +61,17 @@ class Ruleset {
     resource;
     id;
     enabled;
-    json;
+    static #cache = new Map();
 
     constructor(resource) {
         this.resource = resource;
         this.id       = resource.id;
         this.enabled  = resource.enabled;
         this.url      = chrome.runtime.getURL(resource.path);
+    }
+
+    get json() {
+        return Ruleset.#cache.get(this.url)?.json;
     }
 
     async isEnabled() {
@@ -92,7 +96,7 @@ class Ruleset {
 
             let [data] = await response.json();
 
-            this.json = data;
+            Ruleset.#cache.set(this.url, { json: data });
             return true;
         } catch (e) {
             return false;
@@ -101,23 +105,26 @@ class Ruleset {
 
     async toPolicy()
     {
+        // Return the parsed policy immediately if it's already in the shared cache.
+        let cached = Ruleset.#cache.get(this.url);
+        if (cached?.policy)
+            return cached.policy;
+
         let policy = new Policy();
-        let csp;
 
-        await this.#load();
-
-        csp = this.json?.action?.responseHeaders?.find(r => r.header == "Content-Security-Policy");
-
-        // Return a blank policy if none already set.
-        if (!csp)
+        // Populate JSON in cache; return a blank policy if the fetch fails.
+        if (!await this.#load())
             return policy;
 
-        // Handle permissive policies that dont modify csp.
-        if (csp.operation != "set")
-            return policy;
+        const csp = this.json.action.responseHeaders?.find(r => r.header == "Content-Security-Policy");
 
-        // Parse the policy we're setting.
-        return policy.fromHeader(csp.value);
+        // Parse and store the policy object in the cache if it's a 'set' operation.
+        if (csp?.operation == "set") {
+            policy.fromHeader(csp.value);
+        }
+
+        Ruleset.#cache.set(this.url, { json: this.json, policy });
+        return policy;
     }
 }
 
@@ -146,20 +153,20 @@ export default class Rules {
     }
 
     async init() {
-        let dynamic = await chrome.declarativeNetRequest.getDynamicRules();
-        let session = await chrome.declarativeNetRequest.getSessionRules();
+        const [dynamic, session] = await Promise.all([
+            chrome.declarativeNetRequest.getDynamicRules(),
+            chrome.declarativeNetRequest.getSessionRules()
+        ]);
 
         this.#rules = new Map();
 
         dynamic.forEach(r => this.#setRule(new Rule(r)));
         session.forEach(r => this.#setRule(new Rule(r, true)));
 
-        this.#staticRulesets = [];
-
         // Chrome's API doesn't list disabled rulesets, so enumerate them from the manifest.
-        for (const resource of chrome.runtime.getManifest().declarative_net_request.rule_resources) {
-            this.#staticRulesets.push(new Ruleset(resource));
-        }
+        this.#staticRulesets ??= chrome.runtime.getManifest()
+            .declarative_net_request.rule_resources
+            .map(resource => new Ruleset(resource));
 
         for (let ruleset of this.#staticRulesets) {
             // Sync current state and probe internal rule IDs.
@@ -351,6 +358,12 @@ export default class Rules {
         let oldSession = await chrome.declarativeNetRequest.getSessionRules();
         let oldDynamic = await chrome.declarativeNetRequest.getDynamicRules();
 
+        // Reset our internal ID counter and re-assign IDs to all incoming rules
+        // to guarantee a collision-free set for the atomic swap.
+        this.#id = 0;
+        session.forEach(r => r.id = this.#getNextId());
+        dynamic.forEach(r => r.id = this.#getNextId());
+
         await this.#updateSessionRules({
             removeRuleIds: oldSession.map(r => r.id),
             addRules: session,
@@ -361,6 +374,41 @@ export default class Rules {
         });
 
         await this.init();
+    }
+
+    async pushToCloud() {
+        let dynamic = this.getRules().filter(r => !r.isSession);
+        let toSet = {};
+
+        for (let rule of dynamic) {
+            toSet[`rule:${rule.host}`] = rule.toRule();
+        }
+
+        await chrome.storage.sync.set(toSet);
+        return dynamic.length;
+    }
+
+    async pullFromCloud() {
+        let storage = await chrome.storage.sync.get(null);
+        let cloudRules = Object.keys(storage)
+            .filter(k => k.startsWith("rule:"))
+            .map(k => storage[k]);
+
+        if (cloudRules.length === 0)
+            return 0;
+
+        let allLocalRules = this.getRules();
+        let sessionRules = allLocalRules.filter(r => r.isSession).map(r => r.toRule());
+        let dynamicRules = allLocalRules.filter(r => !r.isSession);
+
+        let mergedMap = new Map();
+        // Local dynamic rules
+        for (let r of dynamicRules) mergedMap.set(r.host, r.toRule());
+        // Cloud rules overwrite
+        for (let json of cloudRules) mergedMap.set(new Rule(json).host, json);
+
+        await this.replaceAllRules(sessionRules, Array.from(mergedMap.values()));
+        return cloudRules.length;
     }
 
     // Remove every session and dynamic rule for this host.
