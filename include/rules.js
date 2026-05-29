@@ -9,6 +9,7 @@ class Rule {
     action = {};
     condition = {};
 
+    // rule is a raw JSON DNR rule object from chrome.storage or dNR APIs.
     constructor(rule, session = false)
     {
         this.id = rule?.id;
@@ -21,9 +22,11 @@ class Rule {
             "main_frame", "sub_frame"
         ];
         this.condition.urlFilter = rule?.condition?.urlFilter;
-        this.action.responseHeaders[0].value = rule?.action?.responseHeaders[0]?.value;
         this.priority = rule?.priority;
         this.isSession = session;
+
+        // Normalize the raw CSP value through Policy abstractions.
+        this.fromPolicyString(rule?.action?.responseHeaders?.[0]?.value);
     };
 
     set host(host) {
@@ -45,6 +48,10 @@ class Rule {
 
     fromPolicy(policy) {
         this.action.responseHeaders[0].value = policy.toHeader();
+    }
+
+    fromPolicyString(headerString) {
+        this.fromPolicy(new Policy().fromHeader(headerString));
     }
 
     toRule() {
@@ -338,25 +345,17 @@ export default class Rules {
     // Chrome directly so it doesn't need a fresh init(). Static rulesets
     // are left alone.
     async resetAllRules() {
-        let session = await chrome.declarativeNetRequest.getSessionRules();
-        let dynamic = await chrome.declarativeNetRequest.getDynamicRules();
-
-        await this.#updateSessionRules({
-            removeRuleIds: session.map(r => r.id),
-            addRules: [],
-        });
-        await this.#updateDynamicRules({
-            removeRuleIds: dynamic.map(r => r.id),
-            addRules: [],
-        });
-
-        this.#rules.clear();
+        await this.replaceAllRules([], []);
     }
 
-    // Bulk swap (Import). Re-inits since imported ids are arbitrary.
+    // Bulk swap or partial replacement. Re-inits since imported ids are arbitrary.
+    // If an argument is null, the existing rules in that bucket are preserved.
     async replaceAllRules(session = [], dynamic = []) {
         let oldSession = await chrome.declarativeNetRequest.getSessionRules();
         let oldDynamic = await chrome.declarativeNetRequest.getDynamicRules();
+
+        session ??= oldSession;
+        dynamic ??= oldDynamic;
 
         // Reset our internal ID counter and re-assign IDs to all incoming rules
         // to guarantee a collision-free set for the atomic swap.
@@ -376,12 +375,19 @@ export default class Rules {
         await this.init();
     }
 
+    // These two routines don't actually do any cloud stuff, chrome syncs the
+    // options object automatically.
+    // We're limited with how much data we're allowed to store in there, so keep
+    // the representation simple.
     async pushToCloud() {
         let dynamic = this.getRules().filter(r => !r.isSession);
         let toSet = {};
 
         for (let rule of dynamic) {
-            toSet[`rule:${rule.host}`] = rule.toRule();
+            toSet[`rule:${rule.host}`] = {
+                priority: rule.priority,
+                policy: rule.policy.toHeader()
+            };
         }
 
         await chrome.storage.sync.set(toSet);
@@ -389,25 +395,25 @@ export default class Rules {
     }
 
     async pullFromCloud() {
-        let storage = await chrome.storage.sync.get(null);
-        let cloudRules = Object.keys(storage)
-            .filter(k => k.startsWith("rule:"))
-            .map(k => storage[k]);
-
-        if (cloudRules.length === 0)
-            return 0;
-
-        let allLocalRules = this.getRules();
-        let sessionRules = allLocalRules.filter(r => r.isSession).map(r => r.toRule());
-        let dynamicRules = allLocalRules.filter(r => !r.isSession);
-
         let mergedMap = new Map();
-        // Local dynamic rules
-        for (let r of dynamicRules) mergedMap.set(r.host, r.toRule());
-        // Cloud rules overwrite
-        for (let json of cloudRules) mergedMap.set(new Rule(json).host, json);
+        let storage = await chrome.storage.sync.get(null);
+        let cloudRules = Object.keys(storage).filter(k => k.startsWith("rule:"));
 
-        await this.replaceAllRules(sessionRules, Array.from(mergedMap.values()));
+        for (let r of this.getRules().filter(r => !r.isSession)) {
+            mergedMap.set(r.host, r.toRule());
+        }
+
+        for (let host of cloudRules) {
+            let rule = new Rule();
+
+            // host is the storage key, so remove the "rule:" prefix.
+            rule.host = host.slice(5);
+            rule.priority = storage[host].priority;
+            rule.fromPolicyString(storage[host].policy);
+            mergedMap.set(rule.host, rule.toRule());
+        }
+
+        await this.replaceAllRules(null, Array.from(mergedMap.values()));
         return cloudRules.length;
     }
 

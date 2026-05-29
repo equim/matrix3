@@ -37,8 +37,12 @@ downloadElement.addEventListener("click", () => {
 pushElement.addEventListener("click", async () => {
     if (!await utils.confirmAction("Push dynamic rules into cloud storage?"))
         return;
-    let count = await RulesManager.pushToCloud();
-    console.log(`Successfully pushed ${count} dynamic rules to cloud.`);
+    try {
+        let count = await RulesManager.pushToCloud();
+        console.log(`Successfully pushed ${count} dynamic rules to cloud.`);
+    } catch (e) {
+        alert("Push failed: " + e.message);
+    }
 });
 
 pullElement.addEventListener("click", async () => {
