@@ -265,6 +265,15 @@ export default class Rules {
         return policy;
     }
 
+    // Policy for a single static ruleset by id (e.g. "firstparty"), whether or
+    // not it's currently enabled. Read-only: returns the shared cached policy.
+    async getRulesetPolicy(id) {
+        let ruleset = this.#staticRulesets.find(r => r.id == id);
+        if (!ruleset)
+            return new Policy();
+        return ruleset.toPolicy();
+    }
+
     // Empty template rule seeded with the active default ruleset's policy.
     async getEmptyRule(hostName) {
         let rule = new Rule();

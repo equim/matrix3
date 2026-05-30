@@ -169,7 +169,7 @@ function unblockReportedViolations() {
 // style-src, and img-src. default-src covers other directives via inheritance;
 // the rest are commonly set explicitly in strict policies so they need their
 // own entries.
-function applyTrustGroup(checked) {
+async function applyTrustGroup(checked) {
     let name = document.getElementById('trustgroup').value;
     let dirs = ["default-src", "script-src", "style-src", "img-src"];
     let origins;
@@ -190,7 +190,7 @@ function applyTrustGroup(checked) {
     }
 
     if (!checked)
-        fallbackToNone();
+        await fallbackToFirstParty();
 
     utils.sortTable(directivesTable, compareSourceRows);
     setCurrentRules(originList.value);
@@ -234,9 +234,9 @@ directivesTable.addEventListener("change", (event) => {
     enforceNoneLeader(event.target);
     setCurrentRules(originList.value);
 });
-sandboxTable.addEventListener("change", (event) => {
+sandboxTable.addEventListener("change", async (event) => {
     if (event.target.id === "sandbox-enabled")
-        fallbackToNone();
+        await fallbackToFirstParty();
     setCurrentRules(originList.value);
 });
 
@@ -363,11 +363,14 @@ function getSourceCheckboxState(source, directive, container = directivesTable.t
     return findCheckbox(source, directive, false, container)?.checked;
 }
 
-// Check a sensible default-src if nothing else is, so the CSP isn't
-// implicitly wide-open. Skipped when sandbox is enabled (sandbox is enough).
-function fallbackToNone(container = directivesTable.tBodies[0]) {
+// Seed the first-party policy when default-src is empty, so the CSP isn't
+// implicitly wide-open. It's one step less strict than 'none', which is more
+// convenient than a bare default-src. Skipped when sandbox is enabled.
+async function fallbackToFirstParty(container = directivesTable.tBodies[0]) {
     let col;
     let boxes;
+    let policy;
+    let columns;
 
     if (document.querySelector("input#sandbox-enabled").checked)
         return;
@@ -375,9 +378,17 @@ function fallbackToNone(container = directivesTable.tBodies[0]) {
     col = utils.getTableColProps(directivesTable, "id").indexOf("default-src");
     boxes = Array.from(container.children, r => r.cells[col].firstChild);
 
-    // I'm not sure if we should use self or none here.
-    if (!boxes.some(b => b.checked))
-        findCheckbox("'self'", "default-src", true, container).checked = true;
+    if (boxes.some(b => b.checked))
+        return;
+
+    policy = await RulesManager.getRulesetPolicy("firstparty");
+    columns = utils.getTableColProps(directivesTable, "id");
+
+    for (let [directive, sources] of Object.entries(policy.directives)) {
+        let dir = collapseDirective(directive);
+        if (columns.includes(dir))
+            sources.forEach(src => setSourceCheckboxState(importableSource(src), dir, true, undefined, container));
+    }
 }
 
 // Sort sources alphabetically, but with nonce-* / sha*-* values at the end
@@ -475,8 +486,13 @@ async function setCurrentRules(hostName)
     for (let header of headers) {
         let serverPolicy = new Policy().fromHeader(header);
         for (let d in serverPolicy.directives) {
+            // We can't allow all directives through for domain scope, or
+            // they'll apply to every host on that domain. This is a
+            // tradeoff, rules are far easier for users to manage by domain,
+            // but you have to accept the rules that allow the weakest hosts to
+            // work. It can be configured by users though, via the scope option.
             if (!Policy.isAllowedPassthruDirective(d, scope)) {
-                console.log("report", `dropped directive ${d} for ${hostName}, not allowed in scope`);
+                console.debug("report", `dropped directive ${d} for ${hostName}, not allowed in scope`);
                 continue;
             }
             if (policy.directives[d]) {
