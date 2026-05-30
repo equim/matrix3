@@ -151,11 +151,11 @@ export default class Rules {
 
     // Map the defaultpolicy option slider to the static ruleset it enables.
     static PolicyRulesets = [
-        "permissive",          // 0: Off
-        "firstparty",          // 1: First Party
-        "sandbox",             // 2: Sandbox
-        "sandbox-firstparty",  // 3: First Party Sandboxed
-        "strict",              // 4: Strict
+        "permissive",   // 0: Off
+        "firstparty",   // 1: First Party
+        "sandbox-lite", // 2: Sandbox (scripts + forms)
+        "sandbox",      // 3: Sandbox
+        "strict",       // 4: Strict
     ];
 
     constructor() {

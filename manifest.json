@@ -36,13 +36,13 @@
         "enabled": false,
         "path": "firstparty.json"
       }, {
+        "id": "sandbox-lite",
+        "enabled": false,
+        "path": "sandbox-lite.json"
+      }, {
         "id": "sandbox",
         "enabled": false,
         "path": "sandbox.json"
-      }, {
-        "id": "sandbox-firstparty",
-        "enabled": false,
-        "path": "sandbox-firstparty.json"
       }, {
         "id": "strict",
         "enabled": false,

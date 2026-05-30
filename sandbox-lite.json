@@ -1,6 +1,6 @@
 [
   {
-    "id": 6,
+    "id": 4,
     "priority": 1,
     "action": {
       "type": "modifyHeaders",
@@ -20,7 +20,7 @@
         {
           "header": "Content-Security-Policy",
           "operation": "set",
-          "value": "sandbox; default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'none'; report-uri https://_matrix3.internal/csp-report"
+          "value": "sandbox allow-scripts allow-forms; report-uri https://_matrix3.internal/csp-report"
         }
       ]
     },

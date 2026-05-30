@@ -60,28 +60,32 @@ site, you need to adjust it in the **Report** tab.
 
 ### First Party
 
-First-party scripts, styles, and other resources are generally allowed.
-Third-party resources are blocked unless you give them permission in the
-**Report** tab.
+First-party scripts and resources are generally allowed, along with third-party
+images, styles, and fonts. Third-party scripts are blocked unless you
+give them permission in the **Report** tab.
+
+### Sandbox + Scripts
+
+The `sandbox` attribute is applied to every document, but some scripts and
+forms are allowed. Popups, Downloads, and Navigations are all blocked, and the
+document runs in a strict isolated origin.
+
+Many simple sites will work, but most complex sites may require exceptions in
+the **Report** tab.
 
 ### Sandbox
 
-The `sandbox` attribute is applied to every document by default -- no scripts,
-forms, popups, downloads or top navigation. Add specific exceptions
-in the **Sandbox** section of the **Report** tab if you need them.
+The `sandbox` attribute is applied, with no exceptions.
 
-If you want to disable the sandbox attribute for a site, you can disable it
-and switch to standard source directives (e.g. set `default-src` to `'none'`
-for a strict policy).
-
-### First Party Sandboxed
-
-Combines First Party and Sandbox: first-party resources are generally
-allowed, but the document is also sandboxed.
+Simple static sites will work, but no dynamic features will function. Forms
+will not work without an exception.
 
 ### Strict
 
 Effectively everything is disabled -- `default-src` is set to `'none'`.
+
+Only first-party styles and images are permitted, all other resources are
+blocked unless explicitly enabled.
 
 ## Rules
 
