@@ -40,6 +40,10 @@
         "enabled": false,
         "path": "sandbox.json"
       }, {
+        "id": "sandbox-firstparty",
+        "enabled": false,
+        "path": "sandbox-firstparty.json"
+      }, {
         "id": "strict",
         "enabled": false,
         "path": "strict.json"

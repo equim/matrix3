@@ -149,14 +149,13 @@ export default class Rules {
     #id;
     #rules;
 
-    // Map the defaultpolicy option slider to the static rulesets that should
-    // be enabled.
+    // Map the defaultpolicy option slider to the static ruleset it enables.
     static PolicyRulesets = [
-        ["permissive"],              // 0: Off
-        ["firstparty"],              // 1: First Party
-        ["sandbox"],                 // 2: Sandbox
-        ["sandbox", "firstparty"],   // 3: First Party Sandboxed
-        ["strict"],                  // 4: Strict
+        "permissive",          // 0: Off
+        "firstparty",          // 1: First Party
+        "sandbox",             // 2: Sandbox
+        "sandbox-firstparty",  // 3: First Party Sandboxed
+        "strict",              // 4: Strict
     ];
 
     constructor() {
@@ -164,7 +163,8 @@ export default class Rules {
     }
 
     async applyDefaultPolicy(level) {
-        await this.setEnabledRulesets(Rules.PolicyRulesets[level] ?? []);
+        let ruleset = Rules.PolicyRulesets[level];
+        await this.setEnabledRulesets(ruleset ? [ruleset] : []);
     }
 
     async init() {
@@ -251,16 +251,16 @@ export default class Rules {
         return this.#rules.get(hostName)?.dynamic;
     }
 
-    // Policy composed from the currently enabled (non-required) static rulesets.
+    // Policy from the single enabled (non-required) static ruleset. Copied so
+    // callers (e.g. setCurrentRules) can mutate it without corrupting the cache.
     async getDefaultPolicy() {
         let policy = new Policy();
-        let enabledRulesets = this.#staticRulesets.filter(r => r.enabled && !r.isRequired());
+        let ruleset = this.#staticRulesets.find(r => r.enabled && !r.isRequired());
 
-        for (let ruleset of enabledRulesets) {
-             const p = await ruleset.toPolicy();
-             for (const [dir, sources] of Object.entries(p.directives)) {
+        if (ruleset) {
+            let p = await ruleset.toPolicy();
+            for (const [dir, sources] of Object.entries(p.directives))
                 policy.directives[dir] = [...sources];
-             }
         }
         return policy;
     }
