@@ -67,11 +67,13 @@ give them permission in the **Report** tab.
 ### Sandbox + Scripts
 
 The `sandbox` attribute is applied to every document, but some scripts and
-forms are allowed. Popups, Downloads, and Navigations are all blocked, and the
+forms are allowed. Popups, downloads, and navigations are all blocked, and the
 document runs in a strict isolated origin.
 
-Many simple sites will work, but most complex sites may require exceptions in
+Many simple sites will work, but most complex sites will require exceptions in
 the **Report** tab.
+
+Cookies will *mostly* not work unless you enable "Allow Same Origin".
 
 ### Sandbox
 
