@@ -166,3 +166,8 @@ span.origin-name {
     padding-left: 1em;
 }
 
+/* Hide the divider after the last-push line until it has content */
+#lastpush:empty + hr {
+    display: none;
+}
+

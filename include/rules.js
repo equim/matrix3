@@ -6,6 +6,9 @@ const kStaticPriority  = 1;
 const kDynamicPriority = 2;
 const kSessionPriority = 3;
 
+// Sync key recording when we last pushed rules.
+const kLastPushKey = "meta:lastpush";
+
 // A declarativeNetRequest rule (session or dynamic).
 class Rule {
     id;
@@ -415,7 +418,23 @@ export default class Rules {
 
         await chrome.storage.sync.remove(stale);
         await chrome.storage.sync.set(toSet);
+
+        // Record this push so the panel can show when we last synced.
+        await chrome.storage.sync.set({ [kLastPushKey]: { time: Date.now() } });
+
         return dynamic.length;
+    }
+
+    async getCloudTime() {
+        let storage = await chrome.storage.sync.get(kLastPushKey);
+        return storage[kLastPushKey]?.time ?? null;
+    }
+
+    async getCloudRules() {
+        let storage = await chrome.storage.sync.get(null);
+        return Object.keys(storage)
+            .filter(k => k.startsWith("rule:"))
+            .map(k => k.slice(5));
     }
 
     async pullFromCloud() {

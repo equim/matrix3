@@ -10,6 +10,20 @@ const pushElement = document.getElementById("push");
 const pullElement = document.getElementById("pull");
 const options = await Options.get();
 
+async function refreshLastPush() {
+    let time = await RulesManager.getCloudTime();
+    let rules = await RulesManager.getCloudRules();
+    let element = document.getElementById("lastpush");
+
+    if (!time) {
+        element.textContent = "";
+        return;
+    }
+
+    let when = new Date(time).toLocaleString();
+    element.textContent = `Last cloud push: ${rules.length} rules, ${when}`;
+}
+
 async function buildExport() {
     let rules = RulesManager.getRules();
     return {
@@ -42,6 +56,8 @@ pushElement.addEventListener("click", async () => {
         console.log(`Successfully pushed ${count} dynamic rules to cloud.`);
     } catch (e) {
         alert("Push failed: " + e.message);
+    } finally {
+        await refreshLastPush();
     }
 });
 
@@ -87,3 +103,4 @@ loadElement.addEventListener("click", async () => {
 Options.addUpdateListener(() => refreshExport());
 
 await refreshExport();
+await refreshLastPush();
