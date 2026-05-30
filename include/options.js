@@ -1,6 +1,7 @@
 
 // The default options if none are set.
 const kDefaultOptions = {
+    version: 1,
     defaultpolicy: 0,
     advanced: false,
     badges: true,
