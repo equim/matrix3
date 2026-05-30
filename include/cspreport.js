@@ -8,6 +8,13 @@ export default class CspReport {
         if (uri === "null")
             return null;
 
+        if (uri === "") {
+            // Browser redacts the blocked URL for privacy (cross-origin
+            // redirects, notably under frame-src). The real scheme is hidden,
+            // so represent it as an opaque source.
+            return new URL("opaque:");
+        }
+
         // CSP keywords like 'inline' or 'eval' won't parse as URLs without a
         // scheme. Prepending a colon makes them valid opaque URLs (e.g. 'eval:'),
         // which lets the URL constructor succeed and preserves the keyword in
@@ -72,12 +79,17 @@ export default class CspReport {
                 return "'unsafe-eval'";
             case "wasm-eval:":
                 return "'wasm-unsafe-eval'";
+            case "opaque:":
+                // Redacted blocked-uri: real scheme hidden, so allow everything
+                // for this directive. Kept in sync with help/sources.json.
+                console.warn("cspreport", "redacted blocked-uri, substituting allow-all source");
+                return "* data: blob:";
             case "about:":
             case "data:":
             case "blob:":
+            case "filesystem:":
             case "trusted-types-sink:":
                 return protocol;
         }
     }
 }
-

@@ -41,6 +41,21 @@
       "description": "Allows loading resources from data: URLs (e.g., base64-encoded images)."
     },
     {
+      "name": "filesystem:",
+      "regex": "^filesystem:$",
+      "description": "Allows loading resources from filesystem: URLs, created by the deprecated File System API."
+    },
+    {
+      "name": "*",
+      "regex": "^\\*$",
+      "description": "Allows loading resources from any network origin, but not data:, blob:, or filesystem: URLs."
+    },
+    {
+      "name": "* data: blob:",
+      "regex": "^\\* data: blob:$",
+      "description": "A generic source substituted when the browser blocked a resource but withheld its address for privacy reasons."
+    },
+    {
       "name": "https:",
       "regex": "^https:$",
       "description": "Allows loading resources from any HTTPS origin."
