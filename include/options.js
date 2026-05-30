@@ -3,7 +3,7 @@
 const kDefaultOptions = {
     defaultpolicy: 0,
     advanced: false,
-    badges: false,
+    badges: true,
     confirmactions: false,
     unregistersw: true,
     defaultscope: "domain",
