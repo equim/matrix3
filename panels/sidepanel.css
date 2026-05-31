@@ -62,6 +62,10 @@ table#sandbox tbody th {
     white-space: nowrap;
 }
 
+div:has(> #sources) {
+    overflow-x: auto;
+}
+
 table#sources th {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -69,7 +73,7 @@ table#sources th {
 }
 
 table#sources tbody th {
-    max-width: 20ch;
+    max-width: calc(18ch + max(100vw - 55ch, 0ch));
     font-family: monospace;
 }
 
@@ -87,7 +91,7 @@ table#sources:has(td:nth-child(11):hover) col:nth-child(11),
 table#sources:has(td:nth-child(12):hover) col:nth-child(12),
 table#sources:has(td:nth-child(13):hover) col:nth-child(13),
 table#sources tr:hover {
-    background-color: rgba(127, 127, 127, 0.15);
+    background-color: color-mix(in srgb, transparent, CanvasText 12%);
 }
 
 table#sandbox tbody th:before {
